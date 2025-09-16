@@ -51,7 +51,7 @@ export default function SignInPage() {
           className="left-[20%] md:left-[25%] top-[5%] md:top-[10%]"
         />
       </div>
-      <div className="container z-10 px-9 py-15 md:max-w-[30%] max-w-90">
+      <div className="container z-10 px-9 py-15 md:max-w-[30%]">
         {/* <h1 className="font-bold text-3xl text-grey-800 mb-7 w-full">Sign In</h1> */}
         <SignInForm />
       </div>

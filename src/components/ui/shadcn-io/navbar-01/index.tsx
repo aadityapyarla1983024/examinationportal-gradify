@@ -70,9 +70,9 @@ export interface Navbar01Props extends React.HTMLAttributes<HTMLElement> {
 // Default navigation links
 const defaultNavigationLinks: Navbar01NavLink[] = [
   { href: "/", label: "Home", active: true },
-  { href: "/students", label: "Student" },
-  { href: "/instructors", label: "Instructor" },
-  { href: "/admin", label: "Admin" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/myexams", label: "Exams" },
+  { href: "/about", label: "About" },
 ];
 
 export const Navbar01 = React.forwardRef<HTMLElement, Navbar01Props>(
@@ -178,11 +178,10 @@ export const Navbar01 = React.forwardRef<HTMLElement, Navbar01Props>(
             )}
             {/* Main nav */}
             <div className="flex items-center gap-6">
-              <a
-                onClick={(e) => e.preventDefault()}
-                className="flex items-center space-x-2 text-primary hover:text-primary/90 transition-colors cursor-pointer"
-              >
-                <div className="text-2xl">{logo}</div>
+              <a className="flex items-center space-x-2 text-primary hover:text-primary/90 transition-colors cursor-pointer">
+                <div className="text-2xl">
+                  <Link to={"/"}>{logo}</Link>
+                </div>
               </a>
               {/* Navigation menu */}
               {!isMobile && (
