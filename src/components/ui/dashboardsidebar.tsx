@@ -32,17 +32,22 @@ export default function DashBoardSideBar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild onClick={toggleSidebar}>
+                <SidebarMenuButton asChild>
+                  <Link to="/dashboard/create-exam">Dashboard</Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
                   <Link to="/dashboard/create-exam">Create Exam</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild onClick={toggleSidebar}>
+                <SidebarMenuButton asChild>
                   <Link to="/dashboard/enter-exam">Enter Exam Code</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild onClick={toggleSidebar}>
+                <SidebarMenuButton asChild>
                   <Link to="/dashboard/my-exams">My Exams</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
