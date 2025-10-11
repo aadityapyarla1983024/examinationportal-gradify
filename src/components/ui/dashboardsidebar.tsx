@@ -48,7 +48,7 @@ export default function DashBoardSideBar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/dashboard/my-exams">My Exams</Link>
+                  <Link to="/dashboard/myexams">My Exams</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

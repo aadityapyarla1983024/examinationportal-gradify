@@ -39,10 +39,6 @@ export default function CreateExamPage() {
   const [questions, SetQuestions] = useState([]);
   const [newQuestion, SetNewQuestion] = useState(createBlankQuestion());
 
-  useEffect(() => {
-    console.log("Updated Questions List:", questions);
-  }, [questions]);
-
   const handleAddOption = () => {
     SetNewQuestion((prev) => ({
       ...prev,
@@ -57,23 +53,21 @@ export default function CreateExamPage() {
   };
 
   const handleDeleteOption = (optionIdToDelete) => {
-    const handleDeleteOption = (optionIdToDelete) => {
-      if (newQuestion.options.length <= 2) {
-        toast.error("A question must contain atleast two options", {
-          toastId: "delete-option-error",
-        });
-        return;
-      }
-
-      SetNewQuestion((prev) => {
-        const filteredOptions = prev.options.filter((option) => option.id !== optionIdToDelete);
-        const renumberedOptions = filteredOptions.map((option, index) => ({
-          ...option,
-          id: index + 1,
-        }));
-        return { ...prev, options: renumberedOptions };
+    if (newQuestion.options.length <= 2) {
+      toast.error("A question must contain atleast two options", {
+        toastId: "delete-option-error",
       });
-    };
+      return;
+    }
+
+    SetNewQuestion((prev) => {
+      const filteredOptions = prev.options.filter((option) => option.id !== optionIdToDelete);
+      const renumberedOptions = filteredOptions.map((option, index) => ({
+        ...option,
+        id: index + 1,
+      }));
+      return { ...prev, options: renumberedOptions };
+    });
   };
 
   const handleQuestionTypeChange = (value) => {
