@@ -33,7 +33,7 @@ export default function DashBoardSideBar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/dashboard/create-exam">Dashboard</Link>
+                  <Link to="/dashboard">Dashboard</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
