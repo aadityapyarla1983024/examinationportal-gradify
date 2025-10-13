@@ -20,11 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import NewQuestionOptions from "@/components/ui/shadcn-io/radio-group/newquestionoptions";
-import { Check, Pencil, Plus, X } from "lucide-react";
+import { Check, Pencil, Plus, X, ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { title } from "process";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { DateTimePicker24h } from "@/components/datetimepicker";
 
 const createBlankQuestion = () => ({
   id: 0,
@@ -38,6 +42,13 @@ const createBlankQuestion = () => ({
 export default function CreateExamPage() {
   const [questions, SetQuestions] = useState([]);
   const [newQuestion, SetNewQuestion] = useState(createBlankQuestion());
+  const [date, setDate] = useState<Date>();
+  const [examTitle, setExamTitle] = useState("");
+  const [duration, setDuration] = useState(undefined);
+
+  const handleSubmitExam = () => {
+    toast.success("Your exam was submitted successfully ");
+  };
 
   const handleAddOption = () => {
     SetNewQuestion((prev) => ({
@@ -303,7 +314,41 @@ export default function CreateExamPage() {
   };
 
   return (
-    <div className="form-container w-full p-24">
+    <div className="form-container w-full p-10 md:p-24">
+      <div className="grid grid-cols-1 md:grid-cols-3 items-center w-fit gap-5">
+        <Label htmlFor="exam_title" className="md:col-start-1">
+          Exam Title
+        </Label>
+        <Input
+          id="exam_title"
+          value={examTitle}
+          onChange={(e) => setExamTitle(e.target.value)}
+          type="text"
+          name="exam_title"
+          className="md:col-start-2 md:col-span-2"
+        />
+
+        <Label htmlFor="duration" className="md:col-start-1">
+          Duration (min)
+        </Label>
+        <Input
+          id="duration"
+          value={duration}
+          onChange={(e) => setDuration(e.target.valueAsNumber)}
+          type="number"
+          name="duration"
+          className="md:col-start-2"
+        />
+
+        <Label htmlFor="date" className="md:col-start-1">
+          Schedule Exam On
+        </Label>
+        <DateTimePicker24h
+          id="date"
+          className="md:col-start-2 md:col-span-2"
+          setParentState={setDate}
+        />
+      </div>
       <ToastContainer />
       {questions.map((question) => {
         if (question.edit !== true) {
@@ -488,10 +533,13 @@ export default function CreateExamPage() {
           </CardFooter>
         </Card>
 
-        <div className="newquestionbuttoncontainer flex justify-end">
+        <div className="newquestionbuttoncontainer gap-2 flex justify-end">
           <Button type="submit">
             <Plus />
             Add Question
+          </Button>
+          <Button type="button" onClick={handleSubmitExam}>
+            Create Exam
           </Button>
         </div>
       </form>

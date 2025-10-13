@@ -82,7 +82,7 @@ export function DashBoardSideBarNavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <BadgeCheck />
-                Profile
+                <Link to={"/dashboard/profile"}>Profile</Link>
               </DropdownMenuItem>
               {/* <DropdownMenuItem>
                 <CreditCard />
