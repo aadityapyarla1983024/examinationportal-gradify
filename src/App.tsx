@@ -5,17 +5,21 @@ import { Navbar01 } from "./components/ui/shadcn-io/navbar-01";
 import SignInPage from "./pages/signinpage";
 import { ToastContainer } from "react-toastify";
 import DashBoardRouter from "./pages/dashboardrouter";
+import ExamAttemptPage from "./pages/examattemptpage";
 export default function App() {
   const location = useLocation();
   return (
     <div className="flex-col h-screen">
-      {!location.pathname.includes("/dashboard") && <Navbar01 />}
+      {!(
+        location.pathname.includes("/dashboard") || location.pathname.includes("/examattempt")
+      ) && <Navbar01 />}
       <div className="flex flex-1 overflow-hidden">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/dashboard/*" element={<DashBoardRouter />} />
+          <Route path="/examattempt" element={<ExamAttemptPage />} />
         </Routes>
         <ToastContainer />
       </div>

@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
+import { Link } from "react-router";
 
 export default function EnterExamPage() {
   return (
@@ -28,7 +29,9 @@ export default function EnterExamPage() {
           aria-controls="disabled"
           className="mx-auto w-fit text-center"
         />
-        <Button className="w-full">Submit</Button>
+        <Link to={"/examattempt"}>
+          <Button className="w-full">Submit</Button>
+        </Link>
       </CardContent>
     </Card>
   );

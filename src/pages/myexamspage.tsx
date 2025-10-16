@@ -1,10 +1,62 @@
+//@ts-nocheck
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
-export const description = "An interactive line chart";
 export default function MyExamsPage() {
+  const examsCreated = [
+    {
+      title: "DSA lab exam UG2025 Batch",
+      created_at: "2025-10-12 17:50:21",
+      scheduled_at: "2025-10-15 09:00:00",
+      exam_code: 12312,
+      total: 300,
+      duration: 90,
+      highest: 299,
+      least: 50,
+      average: 255,
+    },
+    {
+      title: "JAVA lab exam UG2025 Batch",
+      created_at: "2025-12-12 17:50:21",
+      scheduled_at: "2025-20-15 09:00:00",
+      exam_code: 12112,
+      total: 300,
+      duration: 70,
+      highest: 289,
+      least: 70,
+      average: 295,
+    },
+  ];
+  const examAttempted = [
+    {
+      title: "DSA lab exam UG2025 Batch",
+      submitted_at: "2025-10-12 17:50:21",
+      scheduled_at: "2025-10-15 09:00:00",
+      exam_code: 12312,
+      total: 300,
+      marks: 255,
+      score: 98,
+      duration: 90,
+      highest: 299,
+      average: 255,
+      attempt_no: 2,
+    },
+    {
+      title: "JAVA lab exam UG2025 Batch",
+      submitted_at: "2025-12-12 17:50:21",
+      scheduled_at: "2025-20-15 09:00:00",
+      exam_code: 12112,
+      total: 300,
+      marks: 255,
+      score: 89,
+      duration: 70,
+      highest: 289,
+      average: 295,
+      attempt_no: 5,
+    },
+  ];
   return (
     <>
       <Tabs defaultValue="exams-created" className="w-full">
@@ -14,91 +66,109 @@ export default function MyExamsPage() {
         </TabsList>
 
         <TabsContent value="exams-created">
-          <div className="p-4 md:p-8">
-            <ScrollArea className="h-72 w-full rounded-md border p-5">
-              <h1 className="p-4">Exams you have created will appear here.</h1>
-              <Card>
-                <CardHeader>
-                  <CardTitle>DSA lab exam UG2025 Batch</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-row gap-20">
-                    <div className="flex flex-col gap-2">
-                      <h2>Submitted At</h2>
-                      <h1>24th July, 2025 10:53 AM</h1>
-                    </div>
-                    {/* <div className="flex flex-col gap-2">
-                      <h2>Marks</h2>
-                      <h1>256 / 300</h1>
-                    </div> */}
-                    {/* <div className="flex flex-col gap-2">
-                      <h2>Score</h2>
-                      <h1>88%</h1>
-                    </div> */}
-                    <div className="flex flex-col gap-2">
-                      <h2>Highest Marks</h2>
-                      <h1>299 / 300</h1>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <h2>Average</h2>
-                      <h1>255 / 300</h1>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <h2>Least Marks</h2>
-                      <h1>50 / 300</h1>
-                    </div>
-                    <div className="flex flex-col gap-2 ml-auto">
-                      <Button variant={"outline"}>View</Button>
-                      <Button>
-                        <Copy /> Exam Code
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="p-4 md:p-8 h-full">
+            <ScrollArea className="h-full w-full rounded-md border p-5">
+              {examsCreated.length != 0 &&
+                examsCreated.map((exam) => {
+                  return (
+                    <Card className="my-5" key={exam.exam_code}>
+                      <CardHeader>
+                        <CardTitle>{exam.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-row gap-20">
+                          <div className="flex flex-col gap-2">
+                            <h2>Schedueld On</h2>
+                            <h1>{exam.scheduled_at}</h1>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <h2>Duration</h2>
+                            <h1>{exam.duration} Min</h1>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <h2>Highest Marks</h2>
+                            <h1>
+                              {exam.highest} / {exam.total}
+                            </h1>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <h2>Average</h2>
+                            <h1>
+                              {exam.average} / {exam.total}
+                            </h1>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <h2>Least Marks</h2>
+                            <h1>
+                              {exam.least} / {exam.total}
+                            </h1>
+                          </div>
+                          <div className="flex flex-col gap-2 ml-auto">
+                            <Button variant={"outline"}>View</Button>
+                            <Button>
+                              <Copy /> Exam Code
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              {examsCreated.length === 0 && <h1>No exams created yet</h1>}
             </ScrollArea>
           </div>
         </TabsContent>
 
         <TabsContent value="exams-attempted">
-          <div className="p-4 md:p-8">
-            <ScrollArea className="w-full h-72 rounded-md border p-5">
-              <h1 className="p-4">No Exams Attempted</h1>
-              <Card>
-                <CardHeader>
-                  <CardTitle>DSA lab exam UG2025 Batch</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-row gap-20">
-                    <div className="flex flex-col gap-2">
-                      <h2>Submitted At</h2>
-                      <h1>24th July, 2025 10:53 AM</h1>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <h2>Marks</h2>
-                      <h1>256 / 300</h1>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <h2>Score</h2>
-                      <h1>88%</h1>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <h2>Highest Marks</h2>
-                      <h1>299 / 300</h1>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <h2>Average</h2>
-                      <h1>255 / 300</h1>
-                    </div>
-                    <div className="flex flex-col gap-2 ml-auto">
-                      <Button variant={"outline"}>View</Button>
-                      <Button>
-                        <Copy /> Exam Code
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="p-4 md:p-8 h-full">
+            <ScrollArea className="w-full h-full  rounded-md border p-5">
+              {examAttempted.length !== 0 &&
+                examAttempted.map((exam) => {
+                  return (
+                    <Card key={exam.exam_code} className="my-5">
+                      <CardHeader>
+                        <CardTitle>{exam.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-15">
+                          <div className="flex flex-col gap-2 lg:w-max">
+                            <h2>Submitted At</h2>
+                            <h1>{exam.submitted_at}</h1>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <h2>Marks</h2>
+                            <h1>
+                              {exam.marks} / {exam.total}
+                            </h1>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <h2>Score</h2>
+                            <h1>{exam.score}%</h1>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <h2>Highest Marks</h2>
+                            <h1>
+                              {exam.highest} / {exam.total}
+                            </h1>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <h2>Average</h2>
+                            <h1>
+                              {exam.average} / {exam.total}
+                            </h1>
+                          </div>
+                          <div className="flex flex-col gap-2 lg:ml-auto">
+                            <Button variant={"outline"}>View</Button>
+                            <Button>
+                              <Copy /> Exam Code
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              {examAttempted.length === 0 && <h1 className="p-4">No Exams Attempted</h1>}
             </ScrollArea>
           </div>
         </TabsContent>

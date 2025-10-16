@@ -46,8 +46,15 @@ export default function CreateExamPage() {
   const [examTitle, setExamTitle] = useState("");
   const [duration, setDuration] = useState(undefined);
 
-  const handleSubmitExam = () => {
-    toast.success("Your exam was submitted successfully ");
+  const handleSubmitExam = (event) => {
+    if (examTitle === "") {
+      toast.error("Exam title is required");
+      return;
+    }
+    if (handleNewQuestionSubmit(event)) {
+      toast.success("Your exam was submitted successfully ");
+      return;
+    }
   };
 
   const handleAddOption = () => {
@@ -141,15 +148,15 @@ export default function CreateExamPage() {
 
     if (!title || !questionType) {
       toast.error("Please provide a question title and type.");
-      return;
+      return false;
     }
     if (isChoiceQuestion && options.some((opt) => opt.title === "")) {
       toast.error("Please fill out all option fields.");
-      return;
+      return false;
     }
     if (isChoiceQuestion && correctOptions.length === 0) {
       toast.error("Please select at least one correct option.");
-      return;
+      return false;
     }
 
     SetQuestions((prevQuestions) => {
@@ -159,6 +166,7 @@ export default function CreateExamPage() {
     });
 
     SetNewQuestion(createBlankQuestion());
+    return true;
   };
 
   const editQuestion = (questionId) => {
@@ -538,7 +546,7 @@ export default function CreateExamPage() {
             <Plus />
             Add Question
           </Button>
-          <Button type="button" onClick={handleSubmitExam}>
+          <Button type="button" onClick={(e) => handleSubmitExam(e)}>
             Create Exam
           </Button>
         </div>
