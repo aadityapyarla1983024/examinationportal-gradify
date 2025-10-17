@@ -4,6 +4,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CopyButton } from "@/components/ui/shadcn-io/copy-button";
+import { CopyIcon } from "lucide-react";
 export default function MyExamsPage() {
   const examsCreated = [
     {
@@ -76,8 +79,8 @@ export default function MyExamsPage() {
                         <CardTitle>{exam.title}</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="flex flex-row gap-20">
-                          <div className="flex flex-col gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-15">
+                          <div className="flex flex-col gap-2 lg:w-max">
                             <h2>Schedueld On</h2>
                             <h1>{exam.scheduled_at}</h1>
                           </div>
@@ -104,10 +107,15 @@ export default function MyExamsPage() {
                             </h1>
                           </div>
                           <div className="flex flex-col gap-2 ml-auto">
-                            <Button variant={"outline"}>View</Button>
-                            <Button>
-                              <Copy /> Exam Code
-                            </Button>
+                            <Link to={"/dashboard/examinfo"}>
+                              <Button className="w-full" variant={"outline"}>
+                                View
+                              </Button>
+                            </Link>
+                            <div className="flex flex-row align-middle justify-center gap-2">
+                              <CopyButton content={exam.exam_code} />
+                              <span className="p-1">Exam Code</span>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -121,7 +129,7 @@ export default function MyExamsPage() {
 
         <TabsContent value="exams-attempted">
           <div className="p-4 md:p-8 h-full">
-            <ScrollArea className="w-full h-full  rounded-md border p-5">
+            <ScrollArea className="w-full h-full rounded-md border p-5">
               {examAttempted.length !== 0 &&
                 examAttempted.map((exam) => {
                   return (
@@ -158,10 +166,15 @@ export default function MyExamsPage() {
                             </h1>
                           </div>
                           <div className="flex flex-col gap-2 lg:ml-auto">
-                            <Button variant={"outline"}>View</Button>
-                            <Button>
-                              <Copy /> Exam Code
-                            </Button>
+                            <Link to={"/dashboard/viewattempt"}>
+                              <Button className="w-full" variant={"outline"}>
+                                View
+                              </Button>
+                            </Link>
+                            <div className="flex flex-row align-middle justify-center gap-2">
+                              <CopyButton content={exam.exam_code} />
+                              <span className="p-1">Exam Code</span>
+                            </div>
                           </div>
                         </div>
                       </CardContent>

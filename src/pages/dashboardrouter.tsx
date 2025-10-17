@@ -7,6 +7,8 @@ import CreateExamPage from "./createexampage";
 import MyExamsPage from "./myexamspage";
 import { DashboardPage } from "./dashboardpage";
 import ProfilePage from "./profilepage";
+import ExamAttemptViewPage from "./examattemptviewpage";
+import ExamInfoPage from "./examinfopage";
 export default function DashBoardRouter() {
   return (
     <React.Fragment>
@@ -19,6 +21,8 @@ export default function DashBoardRouter() {
             <Route path="/create-exam" element={<CreateExamPage />} />
             <Route path="/myexams" element={<MyExamsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/viewattempt" element={<ExamAttemptViewPage />} />
+            <Route path="/examinfo" element={<ExamInfoPage />} />
             <Route path="/" element={<DashboardPage />} />
           </Routes>
         </main>

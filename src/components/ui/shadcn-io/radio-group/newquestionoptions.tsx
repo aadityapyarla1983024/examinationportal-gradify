@@ -52,3 +52,41 @@ export function MultiChoiceOptions({ options, questionId, checkedOptions, onChec
     </div>
   );
 }
+
+export function MultiChoiceOptionsView({ options, questionId, checkedOptions, correctOptions }) {
+  return (
+    <div className="flex flex-col gap-5">
+      {options.map((option) => {
+        const isCorrect = correctOptions.includes(option.id);
+        const isChecked = checkedOptions.includes(option.id);
+
+        let containerClass = "";
+
+        if (isChecked && isCorrect) {
+          containerClass = "bg-green-100 border-green-500 dark:bg-green-950 dark:border-green-700";
+        } else if (isChecked && !isCorrect) {
+          containerClass = "bg-red-100 border-red-500 dark:bg-red-950 dark:border-red-700";
+        } else if (!isChecked && isCorrect) {
+          containerClass = "bg-green-100 border-green-500 bg-gray-50 dark:bg-gray-900";
+        }
+
+        const baseClasses = "flex items-start gap-3 rounded-lg border p-3 py-5";
+        return (
+          <div key={option.id} className={`${baseClasses} ${containerClass}`}>
+            <Checkbox
+              id={`q${questionId}-o${option.id}`}
+              checked={isChecked}
+              disabled
+              className={
+                "data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
+              }
+            />
+            <div className="grid gap-1.5 font-normal">
+              <p className="text-sm leading-none font-medium">{option.title}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

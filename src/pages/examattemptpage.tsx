@@ -60,10 +60,17 @@ export default function ExamAttemptPage() {
     ],
   };
   const [answers, setAnswers] = useState([]);
+  const [timer, setTimer] = useState(exam.exam_duration * 60);
 
   useEffect(() => {
-    console.log(answers);
-  }, [answers]);
+    let interval = setInterval(() => {
+      setTimer((prev) => prev - 1);
+    }, 1000);
+  }, []);
+
+  const hours = Math.floor(timer / 3600);
+  const minutes = Math.floor((timer % 3600) / 60);
+  const seconds = Math.floor(timer % 60);
 
   const onCheckChange = (isChecked, optionId, questionId) => {
     setAnswers((prev) => {
@@ -93,7 +100,12 @@ export default function ExamAttemptPage() {
     <>
       <div className="fixed right-5 top-5">
         <Card className="p-5">
-          <CardTitle>Remaining Time: 12:50 </CardTitle>
+          <CardTitle>
+            Remaining Time:{" "}
+            {`${String(hours).padStart(2, 0)}:${String(minutes).padStart(2, 0)}:${String(
+              seconds
+            ).padStart(2, 0)}`}
+          </CardTitle>
         </Card>
       </div>
       <div className="w-full lg:w-[70%] mx-auto">
