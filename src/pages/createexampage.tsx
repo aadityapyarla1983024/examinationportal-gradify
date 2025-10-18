@@ -19,7 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import NewQuestionOptions from "@/components/ui/shadcn-io/radio-group/newquestionoptions";
+import {
+  CreateMultiChoiceOptions,
+  CreateSingleChoiceOptions,
+} from "@/components/ui/shadcn-io/radio-group/newquestionoptions";
 import { Check, Pencil, Plus, X, ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
@@ -371,10 +374,15 @@ export default function CreateExamPage() {
                 </CardAction>
               </CardHeader>
               <CardContent>
-                {question.questionType === "text" ? (
+                {question.questionType === "text" && (
                   <Textarea disabled placeholder="Answer in descriptive form" />
-                ) : (
-                  <NewQuestionOptions options={question.options} />
+                )}
+
+                {question.questionType === "single-choice" && (
+                  <CreateSingleChoiceOptions options={question.options} />
+                )}
+                {question.questionType === "multi-choice" && (
+                  <CreateMultiChoiceOptions options={question.options} />
                 )}
               </CardContent>
               <CardFooter className="flex gap-x-2">

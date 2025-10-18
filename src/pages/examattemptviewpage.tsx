@@ -1,10 +1,9 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle, CardAction } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, X } from "lucide-react";
-import QuestionOptions, {
-  MultiChoiceOptions,
+import {
   MultiChoiceOptionsView,
+  SingleChoiceOptionsView,
 } from "@/components/ui/shadcn-io/radio-group/newquestionoptions";
 
 export default function ExamAttemptViewPage() {
@@ -13,12 +12,16 @@ export default function ExamAttemptViewPage() {
     exam_title: "DSA Lab Exam UG 2024-2025",
     exam_duration: 120,
     total_marks: 50,
+    total_questions_correct: 20,
+    total_questions_incorrect: 11,
+    total_question_attempted: 31,
+    total_questions: 40,
     created_by: "Aaditya Pyarla",
     questions: [
       {
         id: 0,
         title: "dswqdqwd",
-        questionType: "multi-choice",
+        questionType: "single-choice",
         options: [
           {
             id: 0,
@@ -43,8 +46,8 @@ export default function ExamAttemptViewPage() {
   const answers = [
     {
       question_id: 0,
-      answeredOptions: [1, 2],
-      correctOptions: [1, 3],
+      answeredOptions: [1],
+      correctOptions: [1],
     },
   ];
 
@@ -73,11 +76,13 @@ export default function ExamAttemptViewPage() {
                 <CardHeader className="flex flex-row justify-between">
                   <div className="flex flex-col gap-5">
                     <CardTitle>Exam Title: {exam.exam_title}</CardTitle>
-                    <CardTitle>Duration: {exam.exam_duration} min</CardTitle>
+                    <CardTitle>Max Marks: {exam.total_marks}</CardTitle>
+                    <CardTitle>Total Correct: {exam.total_questions_correct}</CardTitle>
                   </div>
                   <div className="flex flex-col gap-5">
-                    <CardTitle>Total Marks: {exam.total_marks}</CardTitle>
-                    <CardTitle>Created By: {exam.created_by}</CardTitle>
+                    <CardTitle>Duration: {exam.exam_duration} min</CardTitle>
+                    <CardTitle>Total Questions: {exam.total_questions}</CardTitle>
+                    <CardTitle>Total Incorrect: {exam.total_questions_incorrect}</CardTitle>
                   </div>
                 </CardHeader>
               </Card>
@@ -115,17 +120,17 @@ export default function ExamAttemptViewPage() {
                         />
                       )}
                       {question.questionType === "single-choice" && (
-                        <QuestionOptions options={question.options} />
+                        <SingleChoiceOptionsView
+                          checkedOptions={checkedOptions}
+                          correctOptions={correctOptions}
+                          questionId={question.id}
+                          options={question.options}
+                        />
                       )}
                     </CardContent>
                   </Card>
                 );
               })}
-            </div>
-            <div className="flex flex-row w-full p-5">
-              <Button size={"lg"} className="ml-auto">
-                Submit
-              </Button>
             </div>
           </main>
         </div>
