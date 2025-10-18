@@ -15,12 +15,12 @@ import { TrendingUp } from "lucide-react";
 
 export function ChartLineInteractive() {
   const chartData = [
-    { date: "2024-06-22", score: 186, average: 24 },
-    { date: "2024-06-23", score: 305, average: 77 },
-    { date: "2024-06-26", score: 237, average: 16 },
-    { date: "2024-06-06", score: 73, average: 70 },
-    { date: "2024-05-23", score: 209, average: 186 },
-    { date: "2024-04-19", score: 214, average: 76 },
+    { date: "2024-06-22", score: 186, average: 24, highest: 299 },
+    { date: "2024-06-23", score: 305, average: 77, highest: 239 },
+    { date: "2024-06-26", score: 237, average: 16, highest: 229 },
+    { date: "2024-06-06", score: 73, average: 70, highest: 119 },
+    { date: "2024-05-23", score: 209, average: 186, highest: 150 },
+    { date: "2024-04-19", score: 214, average: 76, highest: 175 },
   ].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const chartConfig = {
@@ -31,6 +31,10 @@ export function ChartLineInteractive() {
     average: {
       label: "Average",
       color: "var(--chart-2)",
+    },
+    highest: {
+      label: "Highest",
+      color: "var(--chart-3)",
     },
   } satisfies ChartConfig;
 
@@ -70,7 +74,7 @@ export function ChartLineInteractive() {
               content={
                 <ChartTooltipContent
                   className="w-[150px]"
-                  nameKey={["Score", "Average"]}
+                  nameKey={["Score", "Average", "Highest"]}
                   labelFormatter={(value) => {
                     return new Date(value).toLocaleDateString("en-US", {
                       month: "short",
@@ -92,6 +96,13 @@ export function ChartLineInteractive() {
               dataKey="average"
               type="natural"
               stroke="var(--color-average)"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              dataKey="highest"
+              type="natural"
+              stroke="var(--color-highest)"
               strokeWidth={2}
               dot={false}
             />

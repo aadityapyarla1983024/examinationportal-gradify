@@ -72,7 +72,6 @@ export function ExamViewDataTable({ attempts }) {
       <div className="flex items-center py-4">
         <Input
           placeholder="Start searching for..."
-          autoFocus
           value={
             filterBy === "roll"
               ? (table.getColumn("roll")?.getFilterValue() as string) ?? ""

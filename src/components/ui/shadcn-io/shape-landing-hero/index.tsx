@@ -82,9 +82,9 @@ type HeroGeometricProps = {
 
 export function HeroGeometric({
   badge = "shadcn.io",
-  title1 = "Elevate Your Digital Vision",
-  title2 = "Crafting Exceptional Websites",
-  description = "Crafting exceptional digital experiences through innovative design and cutting-edge technology.",
+  title1 = "Redefining exams with",
+  title2 = "simplicity, speed, and seamless performance",
+  description = "Transforming how exams are conducted with intuitive design, advanced technology, and a focus on user experience.",
   className,
 }: HeroGeometricProps) {
   const fadeUpVariants = {
