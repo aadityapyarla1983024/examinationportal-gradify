@@ -54,10 +54,7 @@ export default function CreateExamPage() {
       toast.error("Exam title is required");
       return;
     }
-    if (handleNewQuestionSubmit(event)) {
-      toast.success("Your exam was submitted successfully ");
-      return;
-    }
+    toast.success("Your exam was submitted successfully ");
   };
 
   const handleAddOption = () => {
@@ -335,16 +332,19 @@ export default function CreateExamPage() {
           value={examTitle}
           onChange={(e) => setExamTitle(e.target.value)}
           type="text"
+          placeholder="Enter Exam Title"
+          required
           name="exam_title"
           className="md:col-start-2 md:col-span-2"
         />
 
         <Label htmlFor="duration" className="md:col-start-1">
-          Duration (min)
+          Duration
         </Label>
         <Input
           id="duration"
           value={duration}
+          placeholder="Duration in min"
           onChange={(e) => setDuration(e.target.valueAsNumber)}
           type="number"
           name="duration"

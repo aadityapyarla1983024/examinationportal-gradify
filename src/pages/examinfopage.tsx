@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -9,7 +10,8 @@ import {
   CardAction,
 } from "@/components/ui/card";
 import { TrendingDown, TrendingUp } from "lucide-react";
-
+import { ExamViewDataTable } from "@/components/ui/shadcn-io/ExamInfoDataTable/datatable";
+import ExaminationStatisticsBarChart from "@/components/ui/shadcn-io/ExamInfoDataTable/examstatisticsbarchart";
 export default function ExamInfoPage() {
   const stats = {
     total_exams_attempted: 125,
@@ -57,7 +59,7 @@ export default function ExamInfoPage() {
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2 lg:w-[90%] mx-auto">
-        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+        <div className="flex flex-col gap-4 py-4 md:gap-10 md:py-10">
           <Card>
             <CardHeader className="flex flex-row justify-between">
               <div className="flex flex-col gap-5">
@@ -80,12 +82,6 @@ export default function ExamInfoPage() {
                 </CardTitle>
                 <CardAction></CardAction>
               </CardHeader>
-              <CardFooter className="flex-col items-start gap-1.5 text-sm">
-                <div className="line-clamp-1 flex gap-2 font-medium">
-                  Trending up this month
-                  <TrendingUp />
-                </div>
-              </CardFooter>
             </Card>
             <Card className="@container/card">
               <CardHeader>
@@ -99,11 +95,6 @@ export default function ExamInfoPage() {
                   </Badge>
                 </CardAction>
               </CardHeader>
-              <CardFooter className="flex-col items-start gap-1.5 text-sm">
-                <div className="line-clamp-1 flex gap-2 font-medium">
-                  Down 20% this period <TrendingDown className="size-4" />
-                </div>
-              </CardFooter>
             </Card>
             <Card className="@container/card">
               <CardHeader>
@@ -117,11 +108,6 @@ export default function ExamInfoPage() {
                   </Badge>
                 </CardAction>
               </CardHeader>
-              <CardFooter className="flex-col items-start gap-1.5 text-sm">
-                <div className="line-clamp-1 flex gap-2 font-medium">
-                  Strong user retention <TrendingUp className="size-4" />
-                </div>
-              </CardFooter>
             </Card>
             <Card className="@container/card">
               <CardHeader>
@@ -135,24 +121,30 @@ export default function ExamInfoPage() {
                   </Badge>
                 </CardAction>
               </CardHeader>
-              <CardFooter className="text-sm">
-                <div className="line-clamp-1 flex gap-2 font-medium">
-                  Steady performance increase <TrendingUp className="size-4" />
-                </div>
-              </CardFooter>
             </Card>
           </div>
           <div>
-            <ChartAreaDefault />
+            <ExaminationStatisticsBarChart chartdata={chartdata} />
           </div>
           <div>
-            <DataTableDemo attempts={attempts} />
+            <ExamViewDataTable attempts={attempts} />
           </div>
         </div>
       </div>
     </div>
   );
 }
+export const chartdata = [
+  { range: "10-20", frequency: 10 },
+  { range: "20-30", frequency: 23 },
+  { range: "30-40", frequency: 9 },
+  { range: "40-50", frequency: 20 },
+  { range: "50-60", frequency: 11 },
+  { range: "60-70", frequency: 13 },
+  { range: "70-80", frequency: 15 },
+  { range: "80-90", frequency: 30 },
+  { range: "90-100", frequency: 40 },
+];
 
 export const attempts = [
   {
@@ -174,78 +166,3 @@ export const attempts = [
     total_questions_incorrect: 10,
   },
 ];
-
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
-
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import type { ChartConfig } from "@/components/ui/chart";
-import { DataTableDemo } from "@/components/ui/shadcn-io/ExamInfoDataTable/datatable";
-export const description = "A simple area chart";
-
-const chartData = [
-  { month: "January", desktop: 186 },
-  { month: "February", desktop: 305 },
-  { month: "March", desktop: 237 },
-  { month: "April", desktop: 73 },
-  { month: "May", desktop: 209 },
-  { month: "June", desktop: 214 },
-];
-
-const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "var(--primary)",
-  },
-} satisfies ChartConfig;
-
-export function ChartAreaDefault() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Area Chart</CardTitle>
-        <CardDescription>Showing total visitors for the last 6 months</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
-          <AreaChart
-            accessibilityLayer
-            data={chartData}
-            margin={{
-              left: 12,
-              right: 12,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 3)}
-            />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
-            <Area
-              dataKey="desktop"
-              type="natural"
-              fill="var(--color-desktop)"
-              fillOpacity={0.4}
-              stroke="var(--color-desktop)"
-            />
-          </AreaChart>
-        </ChartContainer>
-      </CardContent>
-      <CardFooter>
-        <div className="flex w-full items-start gap-2 text-sm">
-          <div className="grid gap-2">
-            <div className="flex items-center gap-2 leading-none font-medium">
-              Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-            </div>
-            <div className="text-muted-foreground flex items-center gap-2 leading-none">
-              January - June 2024
-            </div>
-          </div>
-        </div>
-      </CardFooter>
-    </Card>
-  );
-}

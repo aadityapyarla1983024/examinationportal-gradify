@@ -41,7 +41,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 import { columns } from "./columnformat";
-export function DataTableDemo({ attempts }) {
+export function ExamViewDataTable({ attempts }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -154,7 +154,7 @@ export function DataTableDemo({ attempts }) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columnformat.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>

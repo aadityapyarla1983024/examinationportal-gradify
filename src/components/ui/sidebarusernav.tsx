@@ -79,10 +79,12 @@ export function DashBoardSideBarNavUser({
             </DropdownMenuGroup> */}
             {/* <DropdownMenuSeparator /> */}
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                <Link to={"/dashboard/profile"}>Profile</Link>
-              </DropdownMenuItem>
+              <Link to={"/dashboard/profile"}>
+                <DropdownMenuItem>
+                  <BadgeCheck />
+                  Profile
+                </DropdownMenuItem>
+              </Link>
               {/* <DropdownMenuItem>
                 <CreditCard />
                 Billing
@@ -93,10 +95,12 @@ export function DashBoardSideBarNavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              <Link to={"/"}>Log out</Link>
-            </DropdownMenuItem>
+            <Link to={"/"}>
+              <DropdownMenuItem>
+                <LogOut />
+                Log out
+              </DropdownMenuItem>
+            </Link>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

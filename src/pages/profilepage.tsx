@@ -1,17 +1,26 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { toast } from "react-toastify";
 export default function ProfilePage() {
+  const initalState = {
+    first_name: "Aaditya",
+    last_name: "Pyarla",
+    email: "aaditya.pyarla@gmail.com",
+  };
+  const [userInfo, setUserInfo] = useState(initalState);
+
+  const nameUpdate = () => {
+    toast.success("Successfully updated");
+  };
+
+  const emailUpdate = () => {
+    toast.success("Updated email successfully");
+  };
   return (
     <>
       <div className="w-full mt-15 p-4 md:p-8">
@@ -29,7 +38,10 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto md:flex-row">
                   <Avatar className="size-50">
-                    <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+                    <AvatarImage
+                      src="https://avatars.githubusercontent.com/u/173893599?v=4"
+                      alt="@shadcn"
+                    />
                     <AvatarFallback className="text-2xl">CN</AvatarFallback>
                   </Avatar>
 
@@ -37,15 +49,31 @@ export default function ProfilePage() {
                     <div className="flex flex-col gap-5">
                       <div className="flex flex-1 gap-2 flex-col">
                         <Label about="firstname">First Name</Label>
-                        <Input name="firstname" type="text" />
+                        <Input
+                          onChange={(e) =>
+                            setUserInfo((prev) => ({ ...prev, first_name: e.target.value }))
+                          }
+                          value={userInfo.first_name}
+                          name="firstname"
+                          type="text"
+                        />
                       </div>
                       <div className="flex flex-1 gap-2 flex-col">
                         <Label about="lastname">Last Name</Label>
-                        <Input name="lastname" type="text" />
+                        <Input
+                          name="lastname"
+                          type="text"
+                          value={userInfo.last_name}
+                          onChange={(e) =>
+                            setUserInfo((prev) => ({ ...prev, last_name: e.target.value }))
+                          }
+                        />
                       </div>
                     </div>
                     <div className="flex flex-col gap-10"></div>
-                    <Button className="ml-auto my-5">Update</Button>
+                    <Button onClick={nameUpdate} className="ml-auto my-5">
+                      Update
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -62,9 +90,16 @@ export default function ProfilePage() {
                 <CardContent className="md:w-[50%] flex flex-col gap-5">
                   <div className="gap-5 flex">
                     <Label about="email">Email</Label>
-                    <Input name="email" type="email" />
+                    <Input
+                      value={userInfo.email}
+                      onChange={(e) => setUserInfo((prev) => ({ ...prev, email: e.target.value }))}
+                      name="email"
+                      type="email"
+                    />
                   </div>
-                  <Button className="w-fit">Update</Button>
+                  <Button onClick={emailUpdate} className="w-fit">
+                    Update
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
