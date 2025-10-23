@@ -17,19 +17,52 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
-
+import axios from "axios";
+import { useNavigate, Link } from "react-router-dom";
+import { UserContext } from "@/App";
 export default function SignInForm() {
+  const navigate = useNavigate();
+  const { user, setUser } = React.useContext(UserContext);
   const form = useForm({
     defaultValues: {
-      name: "",
       email: "",
       password: "",
     },
   });
 
-  function onSubmit(values) {
-    toast.success("Your are signed in successfully.");
-  }
+  const onSubmit = (data) => {
+    console.log(data);
+    const apiendpoint = "http://localhost:3000/api/auth/signin";
+    axios
+      .post(apiendpoint, data)
+      .then((res) => {
+        console.log(res);
+        localStorage.setItem("token", res.headers["x-auth-token"]);
+        setUser({
+          user_id: res.data.user_id,
+          first_name: res.data.first_name,
+          last_name: res.data.last_name,
+          email: res.data.email,
+          token: res.headers["x-auth-token"],
+          loggedin: true,
+        });
+        navigate("/dashboard");
+      })
+      .catch((err) => {
+        if (err.response) {
+          if (err.response.status > 200) {
+            console.error(err.response.data.error);
+            toast.error(err.response.data.message);
+          }
+        } else if (err.request) {
+          toast.error("No response recieved");
+          console.error(err.request);
+        } else {
+          toast.error("Request error");
+          console.error("Error", err.message);
+        }
+      });
+  };
 
   return (
     <Card>
@@ -88,9 +121,12 @@ export default function SignInForm() {
                 <FormItem>
                   <div className="flex items-center">
                     <FormLabel>Password</FormLabel>
-                    <a href="#" className="ml-auto text-sm underline-offset-4 hover:underline">
+                    <Link
+                      to={"/forgot-password"}
+                      className="ml-auto text-sm underline-offset-4 hover:underline"
+                    >
                       Forgot your password?
-                    </a>
+                    </Link>
                   </div>
                   <FormControl>
                     <Input type="password" placeholder="********" {...field} />

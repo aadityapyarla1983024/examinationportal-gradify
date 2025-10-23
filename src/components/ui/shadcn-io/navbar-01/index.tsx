@@ -178,11 +178,11 @@ export const Navbar01 = React.forwardRef<HTMLElement, Navbar01Props>(
             )}
             {/* Main nav */}
             <div className="flex items-center gap-6">
-              <a className="flex items-center space-x-2 text-primary hover:text-primary/90 transition-colors cursor-pointer">
-                <div className="text-2xl">
-                  <Link to={"/"}>{logo}</Link>
+              <Link to={"/"}>
+                <div className="flex items-center space-x-2 text-primary hover:text-primary/90 transition-colors cursor-pointer">
+                  <div className="text-2xl">{logo}</div>
                 </div>
-              </a>
+              </Link>
               {/* Navigation menu */}
               {!isMobile && (
                 <NavigationMenu className="flex">

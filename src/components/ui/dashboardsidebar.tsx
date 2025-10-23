@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { Link } from "react-router-dom";
 import {
   Sidebar,
@@ -12,11 +13,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { DashBoardSideBarNavUser } from "./sidebarusernav";
+import { useContext } from "react";
+import { UserContext } from "@/App";
 
 export default function DashBoardSideBar() {
-  const user = {
-    name: "Aaditya Pyarla",
-    email: "aaditya.pyarla@gmail.com",
+  const { user, setUser } = useContext(UserContext);
+  const userData = {
+    name: user.first_name + " " + user.last_name,
+    email: user.email,
     avatar: "https://avatars.githubusercontent.com/u/173893599?v=4",
   };
   const { toggleSidebar } = useSidebar();
@@ -56,7 +60,7 @@ export default function DashBoardSideBar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <DashBoardSideBarNavUser user={user} />
+        <DashBoardSideBarNavUser user={userData} />
       </SidebarFooter>
     </Sidebar>
   );

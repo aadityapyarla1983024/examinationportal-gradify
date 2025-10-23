@@ -17,7 +17,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export function DashBoardSideBarNavUser({
   user,
@@ -29,6 +29,12 @@ export function DashBoardSideBarNavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+
+  const navigate = useNavigate();
+  const handleLogOut = () => {
+    localStorage.removeItem("token");
+    navigate("/signin");
+  };
 
   return (
     <SidebarMenu>
@@ -95,12 +101,10 @@ export function DashBoardSideBarNavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <Link to={"/"}>
-              <DropdownMenuItem>
-                <LogOut />
-                Log out
-              </DropdownMenuItem>
-            </Link>
+            <DropdownMenuItem onClick={handleLogOut}>
+              <LogOut />
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

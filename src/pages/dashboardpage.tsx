@@ -11,7 +11,7 @@ export function DashboardPage() {
   return (
     <>
       <div className="flex flex-col mt-10 w-full p-4 md:p-8 gap-10">
-        <div className="@container/main flex flex-1 flex-col gap-20 lg:w-[90%] mx-auto">
+        <div className="@container/main flex flex-1 flex-col w-full gap-20 lg:w-[90%] mx-auto">
           <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
             <Card className="@container/card">
               <CardHeader>

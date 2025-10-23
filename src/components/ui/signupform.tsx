@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useForm } from "react-hook-form";
-
+import axios from "axios";
 import {
   Form,
   FormControl,
@@ -17,19 +17,53 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./card";
+import { useNavigate } from "react-router-dom";
+import { UserContext } from "@/App";
 export default function SignUpForm() {
   const form = useForm({
     defaultValues: {
-      name: "",
+      first_name: "",
+      last_name: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
   });
 
-  function onSubmit(values) {
-    toast.success("You are signed up successfully");
-  }
+  const navigate = useNavigate();
+  const { user, setUser } = React.useContext(UserContext);
+
+  const onSubmit = (data) => {
+    console.log(data);
+    const apiendpoint = "http://localhost:3000/api/auth/signup";
+    axios
+      .post(apiendpoint, data)
+      .then((res) => {
+        console.log(res);
+        setUser({
+          user_id: res.data.user_id,
+          first_name: res.data.first_name,
+          last_name: res.data.last_name,
+          email: res.data.email,
+          token: res.headers["x-auth-token"],
+          loggedin: true,
+        });
+        navigate("/dashboard");
+      })
+      .catch((err) => {
+        if (err.response) {
+          if (err.response.status > 200) {
+            toast.error(err.response.message);
+          }
+        } else if (err.request) {
+          toast.error("No response recieved");
+          console.log(err.request);
+        } else {
+          toast.error("Request error");
+          console.log("Error", err.message);
+        }
+      });
+  };
 
   return (
     <Card>
@@ -56,26 +90,41 @@ export default function SignUpForm() {
             </div>
           </div>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Name */}
             <FormField
               control={form.control}
-              name="name"
+              name="first_name"
               rules={{
-                required: "Name is required",
-                minLength: { value: 2, message: "Name must be at least 2 characters" },
+                required: "First name is required",
+                minLength: { value: 2, message: "First name must be at least 2 characters" },
               }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Your full name" {...field} />
+                    <Input placeholder="First name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="last_name"
+              rules={{
+                required: "Last name is required",
+                minLength: { value: 2, message: "Last name must be at least 2 characters" },
+              }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Last name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Email */}
             <FormField
               control={form.control}
               name="email"
@@ -97,7 +146,6 @@ export default function SignUpForm() {
               )}
             />
 
-            {/* Password */}
             <FormField
               control={form.control}
               name="password"
