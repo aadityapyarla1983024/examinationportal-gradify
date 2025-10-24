@@ -1,4 +1,4 @@
-import config from "config";
+import config from "../config/dev.js";
 
 export default function passwordResetEmail(resetLink, userName) {
   return `<center style="width: 100%; background-color: #f4f7fa; margin: 0; padding: 20px 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333333;">
@@ -41,9 +41,7 @@ export default function passwordResetEmail(resetLink, userName) {
        <td align="center" style="background-color: #f0f0f0; padding: 25px; text-align: center; font-size: 13px; color: #888888; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
          <p style="margin: 0 0 5px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px;">&copy; 2023 Gradify. All rights reserved.</p>
          <p style="margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px;">
-           <a href="http://${config.get("server.host")}:${config.get(
-    "server.port"
-  )}" style="color: #888888; text-decoration: underline;" target="_blank">Visit Gradify</a> |
+           <a href="http://${config.server.host}:${config.server.port}" style="color: #888888; text-decoration: underline;" target="_blank">Visit Gradify</a> |
            <a href="[PRIVACY_POLICY_LINK]" style="color: #888888; text-decoration: underline;" target="_blank">Privacy Policy</a>
          </p>
        </td>

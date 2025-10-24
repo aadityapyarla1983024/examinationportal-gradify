@@ -2,10 +2,11 @@ import express from "express";
 import { hash, compare } from "bcrypt";
 import jwt from "jsonwebtoken";
 import db from "../db.js";
-import config from "config";
+import config from "../config/dev.js";
 import sendEmail from "../utilities/mailer.js";
-import passwordResetEmail from "../utilities/passwordresetemail.js";
+import passwordResetEmail from "../utilities/pass_reset_format.js";
 import verfiyToken from "../middleware/tokenverify.middleware.js";
+import { constants } from "../config/constants.js";
 
 const app = express();
 const auth = app.use(express.Router());
@@ -13,7 +14,7 @@ const auth = app.use(express.Router());
 auth.post("/signup", async (req, res) => {
   const { first_name, last_name, email, password } = req.body;
   if (!first_name || !last_name || !email || !password) {
-    return res.status(400).send("All fields are required");
+    return res.status(constants.HTTP_STATUS.BAD_REQUEST).send("All fields are required");
   }
   const hashed = await hash(password, 10);
   const insertQuery =
@@ -21,14 +22,18 @@ auth.post("/signup", async (req, res) => {
   db.query(insertQuery, [first_name, last_name, email, hashed], (error, result) => {
     if (error) {
       if (error.code === "ER_DUP_ENTRY") {
-        return res.status(400).send({ error, message: "User with this is email already exists" });
+        return res
+          .status(constants.HTTP_STATUS.BAD_REQUEST)
+          .send({ error, message: "User with this is email already exists" });
       }
-      res.status(500).send({ error, message: "Database error" });
+      res
+        .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .send({ error, message: "Database error" });
     }
-    const token = jwt.sign({ id: result.insertId, email }, config.get("jwt.private_key"), {
-      expiresIn: "6h",
+    const token = jwt.sign({ id: result.insertId, email }, config.jwt.privateKey, {
+      expiresIn: constants.JWT.EXPIRES_IN.LOGIN,
     });
-    res.header({ "x-auth-token": token }).send({
+    res.status(constants.HTTP_STATUS.CREATED).header({ "x-auth-token": token }).send({
       user_id: result.insertId,
       first_name,
       last_name,
@@ -44,9 +49,14 @@ auth.post("/reset-password", verfiyToken, async (req, res) => {
   const updateQuery = "UPDATE user SET password=? WHERE id=?;";
   console.log(req.us);
   db.query(updateQuery, [hashedPassword, req.user_id], (error, result) => {
-    if (error) return res.status(500).send({ error, message: "Database error" });
+    if (error)
+      return res
+        .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .send({ error, message: "Database error" });
     if (result.affectedRows === 0)
-      return res.status(400).send({ message: "User with this id does not exist" });
+      return res
+        .status(constants.HTTP_STATUS.NOT_FOUND)
+        .send({ message: "User with this id does not exist" });
     res.send({ message: "Your password was updated successfully" });
   });
 });
@@ -54,16 +64,19 @@ auth.post("/reset-password", verfiyToken, async (req, res) => {
 auth.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
   console.log(email);
-  if (!email) return res.status(400).send("Email is required");
+  if (!email) return res.status(constants.HTTP_STATUS.BAD_REQUEST).send("Email is required");
   const searchEmailQuery = "SELECT id, first_name, last_name FROM user WHERE email=?;";
   db.query(searchEmailQuery, [email], async (error, result) => {
-    if (error) return res.status(500).send({ error, message: "Database error" });
+    if (error)
+      return res
+        .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .send({ error, message: "Database error" });
     console.log(result);
     const { id, first_name, last_name } = result[0];
-    const token = jwt.sign({ id }, config.get("jwt.private_key"), {
-      expiresIn: "5m",
+    const token = jwt.sign({ id }, config.jwt.privateKey, {
+      expiresIn: constants.JWT.EXPIRES_IN.PASS_RESET,
     });
-    const passwordResetLink = `http://192.168.0.101:5184/reset-password/${token}`;
+    const passwordResetLink = `http://${config.server.front.host}:${config.server.front.port}/reset-password/${token}`;
     const fullName = first_name + last_name;
     await sendEmail(email, passwordResetEmail(passwordResetLink, fullName)).catch(console.error);
     res.send({ message: "Email sent successfully" });
@@ -72,14 +85,20 @@ auth.post("/forgot-password", async (req, res) => {
 
 auth.get("/login-verify", (req, res) => {
   const token = req.headers["x-auth-token"];
-  if (!token) return res.status(400).send({ message: "No token was provided" });
+  if (!token)
+    return res.status(constants.HTTP_STATUS.BAD_REQUEST).send({ message: "No token was provided" });
   try {
-    const decoded = jwt.verify(token, config.get("jwt.private_key"));
+    const decoded = jwt.verify(token, config.jwt.privateKey);
     const userFetchQuery = "SELECT * FROM user WHERE id=?;";
     db.query(userFetchQuery, [decoded.id], (error, result) => {
       if (error)
-        return res.status(500).send({ error, message: "Database error while fetching user" });
-      if (result.length === 0) return res.status(400).send({ message: "User does not exists" });
+        return res
+          .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
+          .send({ error, message: "Database error while fetching user" });
+      if (result.length === 0)
+        return res
+          .status(constants.HTTP_STATUS.BAD_REQUEST)
+          .send({ message: "User does not exists" });
       const { id, first_name, last_name, email } = result[0];
       return res.send({
         user_id: id,
@@ -90,7 +109,9 @@ auth.get("/login-verify", (req, res) => {
       });
     });
   } catch (error) {
-    return res.status(400).send({ error, message: "Your login has expired" });
+    return res
+      .status(constants.HTTP_STATUS.BAD_REQUEST)
+      .send({ error, message: "Your login has expired" });
   }
 });
 
@@ -99,18 +120,22 @@ auth.post("/signin", (req, res) => {
   const signinquery = "SELECT * FROM user WHERE email = ?;";
   db.query(signinquery, [email], async (error, result) => {
     if (error) {
-      console.log(err);
-      return res.status(500).send({ error, message: "Database error" });
+      console.log(error);
+      return res
+        .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .send({ error, message: "Database error" });
     }
     if (result.length === 0) {
-      return res.status(400).send({ message: "User with this email does not exists" });
+      return res
+        .status(constants.HTTP_STATUS.BAD_REQUEST)
+        .send({ message: "User with this email does not exists" });
     }
     const user = result[0];
     const isMatch = await compare(password, user.password);
 
     if (isMatch) {
-      const token = jwt.sign({ id: user.id }, config.get("jwt.private_key"), {
-        expiresIn: "6h",
+      const token = jwt.sign({ id: user.id }, config.jwt.privateKey, {
+        expiresIn: constants.JWT.EXPIRES_IN.LOGIN,
       });
       res.header("x-auth-token", token).send({
         user_id: user.id,
@@ -120,7 +145,7 @@ auth.post("/signin", (req, res) => {
         message: "Login successfull",
       });
     } else {
-      res.status(400).send({ message: "Wrong password" });
+      res.status(constants.HTTP_STATUS.BAD_REQUEST).send({ message: "Wrong password" });
     }
   });
 });

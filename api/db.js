@@ -1,11 +1,11 @@
 import { createConnection } from "mysql";
-import config from "config";
+import config from "./config/dev.js";
 
 const db = createConnection({
-  host: config.get("db.host"),
-  user: config.get("db.user"),
-  password: config.get("db.password"),
-  database: config.get("db.database"),
+  host: config.db.host,
+  user: config.db.user,
+  password: config.db.password,
+  database: config.db.database,
 });
 
 export default db;

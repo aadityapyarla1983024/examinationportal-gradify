@@ -1,13 +1,14 @@
 import nodemailer from "nodemailer";
-import config from "config";
+import config from "../config/dev.js";
+
 export default async function sendEmail(email, html) {
   const transporter = nodemailer.createTransport({
-    host: config.get("mail.host"),
-    port: config.get("mail.port"),
-    secure: config.get("mail.secure"),
+    host: config.mail.host,
+    port: config.mail.port,
+    secure: config.mail.secure,
     auth: {
-      user: config.get("mail.user"),
-      pass: config.get("mail.pass"),
+      user: config.mail.user,
+      pass: config.mail.pass,
     },
   });
 
@@ -18,7 +19,6 @@ export default async function sendEmail(email, html) {
       subject: "Gradify - Reset your password",
       html,
     });
-    console.log("Email sent: ", info);
   } catch (error) {
     console.log("Error sending email", error);
   }
