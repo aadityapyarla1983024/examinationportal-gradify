@@ -11,7 +11,9 @@ import { useState, createContext, useEffect } from "react";
 import axios from "axios";
 import ForgotPasswordPage from "./pages/forgotpasswordpage";
 import ResetPasswordPage from "./pages/resetpasswordpage";
+import { constants } from "../config/constants.js";
 const UserContext = createContext(null);
+const localIp = "192.168.0.107";
 
 export default function App() {
   const location = useLocation();
@@ -30,7 +32,7 @@ export default function App() {
       setLoading(false);
       return;
     }
-    const apiendpoint = "http://localhost:3000/api/auth/login-verify";
+    const apiendpoint = `http://${localIp}:3000/api/auth/login-verify`;
     axios
       .get(apiendpoint, {
         headers: {
@@ -57,7 +59,7 @@ export default function App() {
       });
   }, []);
   return (
-    <UserContext.Provider value={{ user, setUser, loading, setLoading }}>
+    <UserContext.Provider value={{ user, setUser, loading, setLoading, localIp }}>
       <div className="flex-col h-screen">
         {!(
           location.pathname.includes("/dashboard") || location.pathname.includes("/examattempt")

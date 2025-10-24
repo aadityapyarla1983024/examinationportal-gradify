@@ -3,9 +3,9 @@ import helmet from "helmet";
 import morgan from "morgan";
 import auth from "./routes/auth.js";
 import cors from "cors";
-import config from "./config/dev.js";
+import config from "../config/dev.js";
 import profile from "./routes/profile.js";
-import { constants } from "./config/constants.js";
+import { constants } from "../config/constants.js";
 
 const app = express();
 
@@ -26,7 +26,6 @@ app.use("/api/profile", profile);
 
 const PORT = config.server.api.port;
 const HOST = config.server.api.host;
-
 app.listen(PORT, HOST, (err) => {
   if (err) {
     console.log(`Something went wrong in listening at ${HOST}:${PORT}`);
@@ -34,5 +33,5 @@ app.listen(PORT, HOST, (err) => {
   }
   console.log(`${constants.APP.NAME} - ${constants.APP.VERSION}`);
   console.log(constants.APP.DESCRIPTION);
-  console.log(`Listening on ${HOST}:${PORT}`);
+  console.log(`API listening on ${HOST}:${PORT}`);
 });

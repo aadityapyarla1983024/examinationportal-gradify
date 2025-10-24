@@ -2,11 +2,11 @@ import express from "express";
 import { hash, compare } from "bcrypt";
 import jwt from "jsonwebtoken";
 import db from "../db.js";
-import config from "../config/dev.js";
+import config from "../../config/dev.js";
 import sendEmail from "../utilities/mailer.js";
 import passwordResetEmail from "../utilities/pass_reset_format.js";
 import verfiyToken from "../middleware/tokenverify.middleware.js";
-import { constants } from "../config/constants.js";
+import { constants } from "../../config/constants.js";
 
 const app = express();
 const auth = app.use(express.Router());

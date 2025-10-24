@@ -31,11 +31,11 @@ export default function SignUpForm() {
   });
 
   const navigate = useNavigate();
-  const { user, setUser } = React.useContext(UserContext);
+  const { user, setUser, localIp } = React.useContext(UserContext);
 
   const onSubmit = (data) => {
     console.log(data);
-    const apiendpoint = "http://localhost:3000/api/auth/signup";
+    const apiendpoint = `http://${localIp}:3000/api/auth/signup`;
     axios
       .post(apiendpoint, data)
       .then((res) => {
@@ -131,7 +131,7 @@ export default function SignUpForm() {
               rules={{
                 required: "Email is required",
                 pattern: {
-                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  value: ` /^[^\s@]+@[^\s@]+\.[^\s@]+$/`,
                   message: "Enter a valid email",
                 },
               }}
@@ -139,7 +139,7 @@ export default function SignUpForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="you@example.com" {...field} />
+                    <Input placeholder="you@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,7 +151,7 @@ export default function SignUpForm() {
               name="password"
               rules={{
                 required: "Password is required",
-                minLength: { value: 6, message: "Password must be at least 6 characters" },
+                minLength: { value: 8, message: "Password must be at least 6 characters" },
               }}
               render={({ field }) => (
                 <FormItem>

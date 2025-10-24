@@ -1,12 +1,13 @@
 import { z } from "zod";
 import dotenv from "dotenv";
 dotenv.config();
+import os from "os";
 
 const envSchema = z.object({
   // Server
-  API_SERVER_HOST: z.string().default("localhost"),
+  API_SERVER_HOST: z.string().default(os.networkInterfaces()["wlan0"][0].address),
   API_SERVER_PORT: z.string().transform(Number).default("3000"),
-  FRONT_SERVER_HOST: z.string().default("localhost"),
+  FRONT_SERVER_HOST: z.string().default(os.networkInterfaces()["wlan0"][0].address),
   FRONT_SERVER_PORT: z.string().transform(Number).default("5173"),
 
   // Database

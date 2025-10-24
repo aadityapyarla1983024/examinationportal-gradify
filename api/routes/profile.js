@@ -1,12 +1,13 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import db from "../db.js";
-import { constants } from "../config/constants.js";
+import { constants } from "../../config/constants.js";
 
 const app = express();
 const profile = app.use(express.Router());
 
 profile.post("/nameupdate", (req, res) => {
+  console.log(req);
   const { first_name, last_name, user_id } = req.body;
   if (!first_name || !last_name || !user_id) {
     return res

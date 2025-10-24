@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
-import config from "../config/dev.js";
-import { constants } from "../config/constants.js";
+import config from "../../config/dev.js";
+import { constants } from "../../config/constants.js";
 
 export default function verfiyToken(req, res, next) {
   const token = req.headers["x-auth-token"];

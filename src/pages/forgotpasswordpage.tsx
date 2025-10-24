@@ -13,9 +13,10 @@ import { ElegantShape } from "@/components/ui/shadcn-io/shape-landing-hero";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { useNavigate } from "react-router-dom";
+import { UserContext } from "@/App";
 export default function ForgotPasswordPage() {
   const form = useForm({
     defaultValues: {
@@ -24,10 +25,10 @@ export default function ForgotPasswordPage() {
   });
   const navigate = useNavigate();
   const [emailLoading, setEmailLoading] = useState(false);
-
+  const { user } = useContext(UserContext);
   const onSubmit = (data) => {
     setEmailLoading(true);
-    const apiendpoint = "http://localhost:3000/api/auth/forgot-password";
+    const apiendpoint = `http://${user.ip_address}:3000/api/auth/forgot-password`;
     axios
       .post(apiendpoint, data)
       .then((res) => {

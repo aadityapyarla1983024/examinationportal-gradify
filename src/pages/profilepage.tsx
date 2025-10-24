@@ -9,24 +9,41 @@ import { useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { UserContext } from "@/App";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 export default function ProfilePage() {
-  const { user, setUser } = useContext(UserContext);
-  const initalState = {
-    first_name: user.first_name,
-    last_name: user.last_name,
-    email: user.email,
-    old_password: "",
-    new_password: "",
-    new_confirm_password: "",
-  };
-  const [userInfo, setUserInfo] = useState(initalState);
-  const nameUpdate = (e) => {
-    e.preventDefault();
-    const apiendpoint = "http://localhost:3000/api/profile/nameupdate";
+  const { user, setUser, localIp } = useContext(UserContext);
+  const nameForm = useForm({
+    defaultValues: {
+      first_name: user.first_name,
+      last_name: user.last_name,
+    },
+  });
+  const emailForm = useForm({
+    defaultValues: {
+      email: user.email,
+    },
+  });
+  const passwordForm = useForm({
+    defaultValues: {
+      old_password: "",
+      new_password: "",
+      new_confirm_password: "",
+    },
+  });
+  const nameUpdate = (data) => {
+    const apiendpoint = `http://${localIp}:3000/api/profile/nameupdate`;
     axios
       .post(apiendpoint, {
-        first_name: userInfo.first_name,
-        last_name: userInfo.last_name,
+        first_name: data.first_name,
+        last_name: data.last_name,
         user_id: user.user_id,
       })
       .then((res) => {
@@ -51,12 +68,11 @@ export default function ProfilePage() {
       });
   };
 
-  const emailUpdate = (e) => {
-    e.preventDefault();
-    const apiendpoint = "http://localhost:3000/api/profile/emailupdate";
+  const emailUpdate = (data) => {
+    const apiendpoint = `http://${localIp}:3000/api/profile/emailupdate`;
     axios
       .post(apiendpoint, {
-        email: userInfo.email,
+        email: data.email,
         user_id: user.user_id,
       })
       .then((res) => {
@@ -80,14 +96,13 @@ export default function ProfilePage() {
       });
   };
 
-  const passwordSubmit = (e) => {
-    e.preventDefault();
-    const apiendpoint = "http://localhost:3000/api/profile/passwordupdate";
+  const passwordSubmit = (data) => {
+    const apiendpoint = `http://${localIp}:3000/api/profile/passwordupdate`;
     axios
       .post(apiendpoint, {
-        old_password: userInfo.old_password,
-        new_password: userInfo.new_password,
-        new_confirm_password: userInfo.new_confirm_password,
+        old_password: data.old_password,
+        new_password: data.new_password,
+        new_confirm_password: data.new_confirm_password,
         user_id: user.user_id,
       })
       .then((res) => {
@@ -131,42 +146,54 @@ export default function ProfilePage() {
                       <AvatarFallback className="text-2xl">CN</AvatarFallback>
                     </Avatar>
                   </div>
-                  <form onSubmit={(e) => nameUpdate(e)}>
-                    <div className="p-5 md:w-[80%] md:ml-10 my-8 md:my-px">
-                      <div className="flex flex-col gap-5">
-                        <div className="flex flex-1 gap-2 flex-col">
-                          <Label about="firstname">First Name</Label>
-                          <Input
-                            required
-                            onChange={(e) =>
-                              setUserInfo((prev) => ({ ...prev, first_name: e.target.value }))
-                            }
-                            value={userInfo.first_name}
-                            name="first_name"
-                            type="text"
-                            className="w-full"
-                          />
+                  <Form {...nameForm}>
+                    <form onSubmit={nameForm.handleSubmit(nameUpdate)}>
+                      <div className="p-5 md:w-[80%] md:ml-10 my-8 md:my-px">
+                        <div className="flex flex-col gap-5">
+                          <div className="flex flex-1 gap-2 flex-col">
+                            <FormField
+                              rules={{
+                                required: "First name is required",
+                              }}
+                              name="first_name"
+                              control={nameForm.control}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>First Name</FormLabel>
+                                  <FormControl>
+                                    <Input className="w-full" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="flex flex-1 gap-2 flex-col">
+                            <FormField
+                              rules={{
+                                required: "Last name is required",
+                              }}
+                              control={nameForm.control}
+                              name="last_name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Last Name</FormLabel>
+                                  <FormControl>
+                                    <Input className="w-full" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                         </div>
-                        <div className="flex flex-1 gap-2 flex-col">
-                          <Label about="lastname">Last Name</Label>
-                          <Input
-                            name="last_name"
-                            type="text"
-                            required
-                            value={userInfo.last_name}
-                            onChange={(e) =>
-                              setUserInfo((prev) => ({ ...prev, last_name: e.target.value }))
-                            }
-                            className="w-full"
-                          />
-                        </div>
+                        <div className="flex flex-col gap-10"></div>
+                        <Button type="submit" className="ml-auto my-5">
+                          Update
+                        </Button>
                       </div>
-                      <div className="flex flex-col gap-10"></div>
-                      <Button type="submit" className="ml-auto my-5">
-                        Update
-                      </Button>
-                    </div>
-                  </form>
+                    </form>
+                  </Form>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -180,22 +207,38 @@ export default function ProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="md:w-[50%]">
-                  <form onSubmit={(e) => emailUpdate(e)} className="flex flex-col gap-5">
-                    <div className="gap-5 flex">
-                      <Label about="email">Email</Label>
-                      <Input
-                        value={userInfo.email}
-                        onChange={(e) =>
-                          setUserInfo((prev) => ({ ...prev, email: e.target.value }))
-                        }
-                        name="email"
-                        type="email"
-                      />
-                    </div>
-                    <Button type="submit" className="w-fit">
-                      Update
-                    </Button>
-                  </form>
+                  <Form {...emailForm}>
+                    <form
+                      onSubmit={emailForm.handleSubmit(emailUpdate)}
+                      className="flex flex-col gap-5"
+                    >
+                      <div className="gap-5 flex">
+                        <FormField
+                          rules={{
+                            required: "Email name is required",
+                            pattern: {
+                              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                              message: "Enter a valid email",
+                            },
+                          }}
+                          name="email"
+                          control={emailForm.control}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input className="w-full" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <Button type="submit" className="w-fit">
+                        Update
+                      </Button>
+                    </form>
+                  </Form>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -210,48 +253,88 @@ export default function ProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="lg:w-[50%]">
-                  <form className="gap-5 flex flex-col" onSubmit={(e) => passwordSubmit(e)}>
-                    <div className="flex gap-2 flex-col">
-                      <Label about="old_password">Old Password</Label>
-                      <Input
-                        value={userInfo.old_password}
-                        onChange={(e) =>
-                          setUserInfo((prev) => ({ ...prev, old_password: e.target.value }))
-                        }
-                        name="old_password"
-                        type="password"
-                      />
-                    </div>
-                    <div className="flex gap-2 flex-col">
-                      <Label about="new_password">New Password</Label>
-                      <Input
-                        value={userInfo.new_password}
-                        onChange={(e) =>
-                          setUserInfo((prev) => ({ ...prev, new_password: e.target.value }))
-                        }
-                        name="new_password"
-                        type="password"
-                      />
-                    </div>
-                    <div className="flex gap-2 flex-col">
-                      <Label about="new_confirm_password">Confirm New Password</Label>
-                      <Input
-                        value={userInfo.new_confirm_password}
-                        onChange={(e) =>
-                          setUserInfo((prev) => ({ ...prev, new_confirm_password: e.target.value }))
-                        }
-                        name="new_confirm_password"
-                        type="password"
-                      />
-                    </div>
-                    <p>
-                      Make sure it's at least 15 characters OR at least 8 characters including a
-                      number and a lowercase letter
-                    </p>
-                    <Button type="submit" className="w-fit">
-                      Update
-                    </Button>
-                  </form>
+                  <Form {...passwordForm}>
+                    <form
+                      className="gap-5 flex flex-col"
+                      onSubmit={passwordForm.handleSubmit(passwordSubmit)}
+                    >
+                      <div className="flex gap-2 flex-col">
+                        <FormField
+                          rules={{
+                            required: "Old password is required",
+                            minLength: {
+                              value: 8,
+                              message: "Password needs be atleast 8 digits long",
+                            },
+                          }}
+                          name="old_password"
+                          control={passwordForm.control}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Old Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" className="w-full" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="flex gap-2 flex-col">
+                        <FormField
+                          rules={{
+                            required: "New password is required",
+                            minLength: {
+                              value: 8,
+                              message: "Password needs to be atleast 8 digits long",
+                            },
+                            validate: (value) =>
+                              value != passwordForm.getValues("old_password") ||
+                              "New password needs to be different",
+                          }}
+                          name="new_password"
+                          control={passwordForm.control}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>New Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" className="w-full" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="flex gap-2 flex-col">
+                        <FormField
+                          rules={{
+                            required: "Confirm new password is required",
+                            validate: (value) =>
+                              value === passwordForm.getValues("new_password") ||
+                              "Passwords don't match",
+                          }}
+                          control={passwordForm.control}
+                          name="new_confirm_password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirm New Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" className="w-full" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <p>
+                        Make sure it's at least 15 characters OR at least 8 characters including a
+                        number and a lowercase letter
+                      </p>
+                      <Button type="submit" className="w-fit">
+                        Update
+                      </Button>
+                    </form>
+                  </Form>
                 </CardContent>
               </Card>
             </TabsContent>

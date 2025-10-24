@@ -22,7 +22,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { UserContext } from "@/App";
 export default function SignInForm() {
   const navigate = useNavigate();
-  const { user, setUser } = React.useContext(UserContext);
+  const { user, setUser, localIp } = React.useContext(UserContext);
   const form = useForm({
     defaultValues: {
       email: "",
@@ -32,7 +32,7 @@ export default function SignInForm() {
 
   const onSubmit = (data) => {
     console.log(data);
-    const apiendpoint = "http://localhost:3000/api/auth/signin";
+    const apiendpoint = `http://${localIp}:3000/api/auth/signin`;
     axios
       .post(apiendpoint, data)
       .then((res) => {
@@ -103,7 +103,7 @@ export default function SignInForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="you@example.com" {...field} />
+                    <Input placeholder="you@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,7 +115,7 @@ export default function SignInForm() {
               name="password"
               rules={{
                 required: "Password is required",
-                minLength: { value: 6, message: "Password must be at least 6 characters" },
+                minLength: { value: 8, message: "Password must be at least 6 characters" },
               }}
               render={({ field }) => (
                 <FormItem>

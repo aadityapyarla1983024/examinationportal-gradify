@@ -7,6 +7,8 @@ export const constants = {
     DESCRIPTION: "Exam Management System",
   },
 
+  LOCAL_IP_ADDRESS: "192.168.0.107",
+
   // Environment Names (derived from env vars, not duplicated)
   ENVIRONMENT: {
     DEVELOPMENT: "development",

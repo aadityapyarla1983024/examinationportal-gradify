@@ -15,6 +15,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useContext } from "react";
+import { UserContext } from "@/App";
 
 export default function ResetPasswordPage() {
   const form = useForm({
@@ -23,12 +25,13 @@ export default function ResetPasswordPage() {
       confirm_new_password: "",
     },
   });
+  const { user, localIp } = useContext(UserContext);
 
   const navigate = useNavigate();
 
   const { jwt } = useParams();
   const onSubmit = (data) => {
-    const apiendpoint = "http://localhost:3000/api/auth/reset-password";
+    const apiendpoint = `http://${localIp}:3000/api/auth/reset-password`;
     axios
       .post(
         apiendpoint,
@@ -124,7 +127,7 @@ export default function ResetPasswordPage() {
                     name="new_password"
                     rules={{
                       required: "New password is required",
-                      minLength: { value: 6, message: "Password must be at least 6 characters" },
+                      minLength: { value: 8, message: "Password must be at least 6 characters" },
                     }}
                     render={({ field }) => (
                       <FormItem>
