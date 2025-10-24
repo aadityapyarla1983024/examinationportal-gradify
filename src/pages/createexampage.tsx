@@ -24,7 +24,7 @@ import {
   CreateSingleChoiceOptions,
 } from "@/components/ui/shadcn-io/radio-group/newquestionoptions";
 import { Check, Pencil, Plus, X, ChevronDownIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { title } from "process";
@@ -32,7 +32,8 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { DateTimePicker24h } from "@/components/datetimepicker";
-
+import axios from "axios";
+import { UserContext } from "@/App";
 const createBlankQuestion = () => ({
   id: 0,
   title: "",
@@ -42,18 +43,47 @@ const createBlankQuestion = () => ({
   edit: false,
 });
 
-export default function CreateExamPage() {
+function CreateExamPage() {
   const [questions, SetQuestions] = useState([]);
   const [newQuestion, SetNewQuestion] = useState(createBlankQuestion());
   const [date, setDate] = useState<Date>();
   const [examTitle, setExamTitle] = useState("");
   const [duration, setDuration] = useState(undefined);
-
+  const { user, localIp } = useContext(UserContext);
   const handleSubmitExam = (event) => {
+    console.log(questions);
     if (examTitle === "") {
       toast.error("Exam title is required");
       return;
     }
+    const exam = {
+      exam_title: examTitle,
+      duration_min: duration,
+      scheduled_date: date,
+      questions: questions.map(({ edit, ...rest }) => rest),
+    };
+    const apiendpoint = `http://${localIp}:3000/api/exam/new-exam`;
+    axios
+      .post(apiendpoint, exam, {
+        headers: {
+          "x-auth-token": user.token,
+        },
+      })
+      .then((res) => {
+        toast.success(res.data.message);
+      })
+      .catch((error) => {
+        if (error.response) {
+          console.log(error.response.data.error);
+          toast.error(error.response.data.message);
+        } else if (error.request) {
+          toast.error("No response recieved");
+          console.log(error.request);
+        } else {
+          toast.error("Request error");
+          console.log(error.message);
+        }
+      });
     toast.success("Your exam was submitted successfully ");
   };
 
@@ -562,3 +592,5 @@ export default function CreateExamPage() {
     </div>
   );
 }
+
+export default CreateExamPage;
