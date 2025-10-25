@@ -6,6 +6,7 @@ import cors from "cors";
 import config from "../config/dev.js";
 import profile from "./routes/profile.js";
 import { constants } from "../config/constants.js";
+import exam from "./routes/exam.js";
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use(
 );
 app.use("/api/auth", auth);
 app.use("/api/profile", profile);
+app.use("/api/exam", exam);
 
 const PORT = config.server.api.port;
 const HOST = config.server.api.host;

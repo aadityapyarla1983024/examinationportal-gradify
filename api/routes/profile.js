@@ -6,8 +6,7 @@ import { constants } from "../../config/constants.js";
 const app = express();
 const profile = app.use(express.Router());
 
-profile.post("/nameupdate", (req, res) => {
-  console.log(req);
+profile.post("/nameupdate", async (req, res) => {
   const { first_name, last_name, user_id } = req.body;
   if (!first_name || !last_name || !user_id) {
     return res
@@ -15,12 +14,9 @@ profile.post("/nameupdate", (req, res) => {
       .send({ message: "First name,last name and userid is required" });
   }
   const updateQuery = "UPDATE user SET first_name=?, last_name=? WHERE id=?;";
-  db.query(updateQuery, [first_name, last_name, user_id], (error, result) => {
-    if (error) {
-      return res
-        .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
-        .send({ error, message: "Database error" });
-    }
+
+  try {
+    const [result] = await db.query(updateQuery, [first_name, last_name, user_id]);
     if (result.affectedRows === 0) {
       return res
         .status(constants.HTTP_STATUS.BAD_REQUEST)
@@ -31,10 +27,16 @@ profile.post("/nameupdate", (req, res) => {
       last_name,
       message: "Name update successfull",
     });
-  });
+  } catch (error) {
+    if (error) {
+      return res
+        .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .send({ error, message: "Internal Server Error" });
+    }
+  }
 });
 
-profile.post("/emailupdate", (req, res) => {
+profile.post("/emailupdate", async (req, res) => {
   const { email, user_id } = req.body;
   if (!email || !user_id) {
     return res
@@ -43,7 +45,15 @@ profile.post("/emailupdate", (req, res) => {
   }
   const updateQuery = "UPDATE user SET email=? WHERE id=?;";
 
-  db.query(updateQuery, [email, user_id], (error, result) => {
+  try {
+    const [result] = await db.query(updateQuery, [email, user_id]);
+    if (result.affectedRows === 0) {
+      return res
+        .status(constants.HTTP_STATUS.BAD_REQUEST)
+        .send({ message: "User with this id does not exist" });
+    }
+    res.send({ email, message: "Email update successfull" });
+  } catch (error) {
     if (error) {
       if (error.code === "ER_DUP_ENTRY") {
         return res
@@ -52,15 +62,9 @@ profile.post("/emailupdate", (req, res) => {
       }
       return res
         .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
-        .send({ error, message: "Database error" });
+        .send({ error, message: "Internal Server Error" });
     }
-    if (result.affectedRows === 0) {
-      return res
-        .status(constants.HTTP_STATUS.BAD_REQUEST)
-        .send({ message: "User with this id does not exist" });
-    }
-    res.send({ email, message: "Email update successfull" });
-  });
+  }
 });
 
 profile.post("/passwordupdate", async (req, res) => {
@@ -70,11 +74,9 @@ profile.post("/passwordupdate", async (req, res) => {
       .status(constants.HTTP_STATUS.BAD_REQUEST)
       .send({ message: "Both old and new password and userid required" });
   const getOldPasswordQuery = "SELECT password FROM user WHERE id=?;";
-  db.query(getOldPasswordQuery, [user_id], async (error, result) => {
-    if (error)
-      return res
-        .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
-        .send({ error, message: "Database error during password fetch" });
+
+  try {
+    const [result] = await db.query(getOldPasswordQuery, [user_id], async (error, result) => {});
     if (result.length === 0) {
       return res
         .status(constants.HTTP_STATUS.BAD_REQUEST)
@@ -85,19 +87,19 @@ profile.post("/passwordupdate", async (req, res) => {
     if (isMatch) {
       const newPaswordHash = await bcrypt.hash(new_password, 10);
       const updateQuery = "UPDATE user SET password=? WHERE id=?;";
-      db.query(updateQuery, [newPaswordHash, user_id], (error, result) => {
-        if (error)
-          return res
-            .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
-            .send({ error, message: "Database error during password update" });
-        res.send({ message: "Password update successfull" });
-      });
+      const [result] = await db.query(updateQuery, [newPaswordHash, user_id]);
+      res.send({ message: "Password update successfull" });
     } else {
       return res
         .status(constants.HTTP_STATUS.BAD_REQUEST)
         .send({ message: "Your old password does not match" });
     }
-  });
+  } catch (error) {
+    if (error)
+      return res
+        .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .send({ error, message: "Internal Server Error" });
+  }
 });
 
 export default profile;
