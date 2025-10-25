@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
 
   const { jwt } = useParams();
   const onSubmit = (data) => {
-    const apiendpoint = `http://${localIp}:3000/api/auth/reset-password`;
+    const apiendpoint = `https://${localIp}:3000/api/auth/reset-password`;
     axios
       .post(
         apiendpoint,

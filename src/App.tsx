@@ -32,7 +32,7 @@ export default function App() {
       setLoading(false);
       return;
     }
-    const apiendpoint = `http://${localIp}:3000/api/auth/login-verify`;
+    const apiendpoint = `https://${localIp}:3000/api/auth/login-verify`;
     axios
       .get(apiendpoint, {
         headers: {

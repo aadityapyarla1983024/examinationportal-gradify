@@ -35,7 +35,7 @@ export default function SignUpForm() {
 
   const onSubmit = (data) => {
     console.log(data);
-    const apiendpoint = `http://${localIp}:3000/api/auth/signup`;
+    const apiendpoint = `https://${localIp}:3000/api/auth/signup`;
     axios
       .post(apiendpoint, data)
       .then((res) => {

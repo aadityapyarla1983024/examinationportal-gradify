@@ -39,7 +39,7 @@ export default function ProfilePage() {
     },
   });
   const nameUpdate = (data) => {
-    const apiendpoint = `http://${localIp}:3000/api/profile/nameupdate`;
+    const apiendpoint = `https://${localIp}:3000/api/profile/nameupdate`;
     axios
       .post(apiendpoint, {
         first_name: data.first_name,
@@ -69,7 +69,7 @@ export default function ProfilePage() {
   };
 
   const emailUpdate = (data) => {
-    const apiendpoint = `http://${localIp}:3000/api/profile/emailupdate`;
+    const apiendpoint = `https://${localIp}:3000/api/profile/emailupdate`;
     axios
       .post(apiendpoint, {
         email: data.email,
@@ -97,7 +97,7 @@ export default function ProfilePage() {
   };
 
   const passwordSubmit = (data) => {
-    const apiendpoint = `http://${localIp}:3000/api/profile/passwordupdate`;
+    const apiendpoint = `https://${localIp}:3000/api/profile/passwordupdate`;
     axios
       .post(apiendpoint, {
         old_password: data.old_password,

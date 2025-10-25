@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 
 .env
+
+*.pem
+*.key
+*.crt
+*.csr
+localhost+*
