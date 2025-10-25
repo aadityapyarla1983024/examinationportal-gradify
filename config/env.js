@@ -9,6 +9,8 @@ const envSchema = z.object({
   API_SERVER_PORT: z.string().transform(Number).default("3000"),
   FRONT_SERVER_HOST: z.string().default(os.networkInterfaces()["wlan0"][0].address),
   FRONT_SERVER_PORT: z.string().transform(Number).default("5173"),
+  SSL_CERT_PATH: z.string().default(""),
+  SSL_KEY_PATH: z.string().default(""),
 
   // Database
   DB_HOST: z.string().default("127.0.0.1"),

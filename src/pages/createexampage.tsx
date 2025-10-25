@@ -34,6 +34,18 @@ import { Calendar } from "@/components/ui/calendar";
 import { DateTimePicker24h } from "@/components/datetimepicker";
 import axios from "axios";
 import { UserContext } from "@/App";
+import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CopyButton } from "@/components/ui/shadcn-io/copy-button";
 const createBlankQuestion = () => ({
   id: 0,
   title: "",
@@ -50,6 +62,12 @@ function CreateExamPage() {
   const [examTitle, setExamTitle] = useState("");
   const [duration, setDuration] = useState(undefined);
   const { user, localIp } = useContext(UserContext);
+  const [dialog, setDialog] = useState({
+    open: false,
+    exam_code: "",
+  });
+
+  const navigate = useNavigate();
   const handleSubmitExam = (event) => {
     console.log(questions);
     if (examTitle === "") {
@@ -62,7 +80,7 @@ function CreateExamPage() {
       scheduled_date: date,
       questions: questions.map(({ edit, ...rest }) => rest),
     };
-    const apiendpoint = `http://${localIp}:3000/api/exam/new-exam`;
+    const apiendpoint = `https://${localIp}:3000/api/exam/new-exam`;
     axios
       .post(apiendpoint, exam, {
         headers: {
@@ -71,6 +89,10 @@ function CreateExamPage() {
       })
       .then((res) => {
         toast.success(res.data.message);
+        setDialog({
+          open: true,
+          exam_code: res.data.exam_code,
+        });
       })
       .catch((error) => {
         if (error.response) {
@@ -589,7 +611,36 @@ function CreateExamPage() {
           </Button>
         </div>
       </form>
+      <CopyExamCodeDialog exam_code={dialog.exam_code} navigate={navigate} open={dialog.open} />
     </div>
+  );
+}
+
+export function CopyExamCodeDialog({ exam_code, open, navigate }) {
+  return (
+    <Dialog open={open}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Your Exam Code</DialogTitle>
+          <DialogDescription>
+            Copy this code to share with other users to allow them to attempt this exam.
+          </DialogDescription>
+          <div className="flex flex-row gap-5 mx-auto my-3">
+            <span className="bg-gray-300 font-extrabold text-2xl px-2 py-1 rounded-md">
+              {exam_code}
+            </span>
+            <CopyButton
+              onClick={() => {
+                setTimeout(() => navigate("/dashboard"), 2000);
+              }}
+              content={exam_code}
+              size={"md"}
+            />
+          </div>
+        </DialogHeader>
+        <DialogFooter></DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

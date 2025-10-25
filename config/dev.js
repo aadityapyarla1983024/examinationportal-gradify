@@ -5,6 +5,10 @@ export const config = {
     api: {
       host: env.API_SERVER_HOST,
       port: env.API_SERVER_PORT,
+      ssl: {
+        key: env.SSL_KEY_PATH,
+        cert: env.SSL_CERT_PATH,
+      },
     },
     front: {
       host: env.FRONT_SERVER_HOST,
