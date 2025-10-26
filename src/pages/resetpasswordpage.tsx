@@ -25,13 +25,13 @@ export default function ResetPasswordPage() {
       confirm_new_password: "",
     },
   });
-  const { user, localIp } = useContext(UserContext);
+  const { user, localIp, protocol } = useContext(UserContext);
 
   const navigate = useNavigate();
 
   const { jwt } = useParams();
   const onSubmit = (data) => {
-    const apiendpoint = `https://${localIp}:3000/api/auth/reset-password`;
+    const apiendpoint = `${protocol}://${localIp}:3000/api/auth/reset-password`;
     axios
       .post(
         apiendpoint,

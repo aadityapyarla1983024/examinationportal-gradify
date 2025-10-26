@@ -31,11 +31,11 @@ export default function SignUpForm() {
   });
 
   const navigate = useNavigate();
-  const { user, setUser, localIp } = React.useContext(UserContext);
+  const { user, setUser, localIp, protocol } = React.useContext(UserContext);
 
   const onSubmit = (data) => {
     console.log(data);
-    const apiendpoint = `https://${localIp}:3000/api/auth/signup`;
+    const apiendpoint = `${protocol}://${localIp}:3000/api/auth/signup`;
     axios
       .post(apiendpoint, data)
       .then((res) => {

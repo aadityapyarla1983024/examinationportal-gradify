@@ -22,7 +22,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { UserContext } from "@/App";
 export default function SignInForm() {
   const navigate = useNavigate();
-  const { user, setUser, localIp } = React.useContext(UserContext);
+  const { user, setUser, localIp, protocol } = React.useContext(UserContext);
   const form = useForm({
     defaultValues: {
       email: "",
@@ -32,7 +32,7 @@ export default function SignInForm() {
 
   const onSubmit = (data) => {
     console.log(data);
-    const apiendpoint = `https://${localIp}:3000/api/auth/signin`;
+    const apiendpoint = `${protocol}://${localIp}:3000/api/auth/signin`;
     axios
       .post(apiendpoint, data)
       .then((res) => {

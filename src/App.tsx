@@ -13,7 +13,8 @@ import ForgotPasswordPage from "./pages/forgotpasswordpage";
 import ResetPasswordPage from "./pages/resetpasswordpage";
 import { constants } from "../config/constants.js";
 const UserContext = createContext(null);
-const localIp = "192.168.0.107";
+const localIp = "localhost";
+const protocol = "http";
 
 export default function App() {
   const location = useLocation();
@@ -32,7 +33,7 @@ export default function App() {
       setLoading(false);
       return;
     }
-    const apiendpoint = `https://${localIp}:3000/api/auth/login-verify`;
+    const apiendpoint = `${protocol}://${localIp}:3000/api/auth/login-verify`;
     axios
       .get(apiendpoint, {
         headers: {
@@ -59,7 +60,7 @@ export default function App() {
       });
   }, []);
   return (
-    <UserContext.Provider value={{ user, setUser, loading, setLoading, localIp }}>
+    <UserContext.Provider value={{ user, setUser, loading, setLoading, localIp, protocol }}>
       <div className="flex-col h-screen">
         {!(
           location.pathname.includes("/dashboard") || location.pathname.includes("/examattempt")

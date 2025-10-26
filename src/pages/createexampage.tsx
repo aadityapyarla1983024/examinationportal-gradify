@@ -61,7 +61,7 @@ function CreateExamPage() {
   const [date, setDate] = useState<Date>();
   const [examTitle, setExamTitle] = useState("");
   const [duration, setDuration] = useState(undefined);
-  const { user, localIp } = useContext(UserContext);
+  const { user, localIp, protocol } = useContext(UserContext);
   const [dialog, setDialog] = useState({
     open: false,
     exam_code: "",
@@ -80,7 +80,7 @@ function CreateExamPage() {
       scheduled_date: date,
       questions: questions.map(({ edit, ...rest }) => rest),
     };
-    const apiendpoint = `https://${localIp}:3000/api/exam/new-exam`;
+    const apiendpoint = `${protocol}://${localIp}:3000/api/exam/new-exam`;
     axios
       .post(apiendpoint, exam, {
         headers: {
@@ -106,8 +106,8 @@ function CreateExamPage() {
           console.log(error.message);
         }
       });
-    toast.success("Your exam was submitted successfully ");
-  };
+
+    };
 
   const handleAddOption = () => {
     SetNewQuestion((prev) => ({

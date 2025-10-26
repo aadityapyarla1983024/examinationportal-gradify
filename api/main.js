@@ -6,6 +6,10 @@ import cors from "cors";
 import config from "../config/dev.js";
 import profile from "./routes/profile.js";
 import { constants } from "../config/constants.js";
+import exam from "./routes/exam.js";
+import https from "https";
+import http from "http";
+import fs from "fs";
 import https from "https"; // Missing import
 import http from "http"; // Missing import
 import fs from "fs"; // Missing import
@@ -33,8 +37,8 @@ const startServer = () => {
   try {
     if (fs.existsSync(config.server.api.ssl.key) && fs.existsSync(config.server.api.ssl.cert)) {
       const sslOptions = {
-        key: fs.readFileSync("./localhost+3-key.pem"),
-        cert: fs.readFileSync("./localhost+3.pem"),
+        key: config.server.api.ssl.key,
+        cert: config.server.api.ssl.cert,
       };
 
       https.createServer(sslOptions, app).listen(PORT, HOST, () => {

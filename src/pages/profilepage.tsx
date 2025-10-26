@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 export default function ProfilePage() {
-  const { user, setUser, localIp } = useContext(UserContext);
+  const { user, setUser, localIp, protocol } = useContext(UserContext);
   const nameForm = useForm({
     defaultValues: {
       first_name: user.first_name,
@@ -39,7 +39,7 @@ export default function ProfilePage() {
     },
   });
   const nameUpdate = (data) => {
-    const apiendpoint = `https://${localIp}:3000/api/profile/nameupdate`;
+    const apiendpoint = `${protocol}://${localIp}:3000/api/profile/nameupdate`;
     axios
       .post(apiendpoint, {
         first_name: data.first_name,
@@ -69,7 +69,7 @@ export default function ProfilePage() {
   };
 
   const emailUpdate = (data) => {
-    const apiendpoint = `https://${localIp}:3000/api/profile/emailupdate`;
+    const apiendpoint = `${protocol}://${localIp}:3000/api/profile/emailupdate`;
     axios
       .post(apiendpoint, {
         email: data.email,
@@ -97,7 +97,7 @@ export default function ProfilePage() {
   };
 
   const passwordSubmit = (data) => {
-    const apiendpoint = `https://${localIp}:3000/api/profile/passwordupdate`;
+    const apiendpoint = `${protocol}://${localIp}:3000/api/profile/passwordupdate`;
     axios
       .post(apiendpoint, {
         old_password: data.old_password,

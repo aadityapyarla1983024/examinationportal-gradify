@@ -25,10 +25,10 @@ export default function ForgotPasswordPage() {
   });
   const navigate = useNavigate();
   const [emailLoading, setEmailLoading] = useState(false);
-  const { user, localIp } = useContext(UserContext);
+  const { user, localIp, protocol } = useContext(UserContext);
   const onSubmit = (data) => {
     setEmailLoading(true);
-    const apiendpoint = `https://${localIp}:3000/api/auth/forgot-password`;
+    const apiendpoint = `${protocol}://${localIp}:3000/api/auth/forgot-password`;
     axios
       .post(apiendpoint, data)
       .then((res) => {
