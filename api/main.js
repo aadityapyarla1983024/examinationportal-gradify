@@ -10,9 +10,6 @@ import exam from "./routes/exam.js";
 import https from "https";
 import http from "http";
 import fs from "fs";
-import https from "https"; // Missing import
-import http from "http"; // Missing import
-import fs from "fs"; // Missing import
 
 const app = express();
 

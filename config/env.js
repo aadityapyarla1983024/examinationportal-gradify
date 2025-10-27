@@ -8,7 +8,7 @@ const envSchema = z.object({
   API_SERVER_HOST: z
     .string()
     .default(
-      os.networkInterfaces()["wlan0"] ? networkInterfaces()["wlan0"][0].address : "localhost"
+      os.networkInterfaces()["wlan0"] ? os.networkInterfaces()["wlan0"][0].address : "localhost"
     ),
   API_SERVER_PORT: z.string().transform(Number).default("3000"),
   FRONT_SERVER_HOST: z
