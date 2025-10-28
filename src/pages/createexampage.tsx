@@ -23,7 +23,7 @@ import {
   CreateMultiChoiceOptions,
   CreateSingleChoiceOptions,
 } from "@/components/ui/shadcn-io/radio-group/newquestionoptions";
-import { Check, Pencil, Plus, X, ChevronDownIcon } from "lucide-react";
+import { Check, Pencil, Plus, X, ChevronDownIcon, GitGraph } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -53,6 +53,7 @@ const createBlankQuestion = () => ({
   options: [],
   correctOptions: [],
   edit: false,
+  marks: undefined,
 });
 
 function CreateExamPage() {
@@ -62,24 +63,47 @@ function CreateExamPage() {
   const [examTitle, setExamTitle] = useState("");
   const [duration, setDuration] = useState(undefined);
   const { user, localIp, protocol } = useContext(UserContext);
+  const [grading, setGrading] = useState("");
   const [dialog, setDialog] = useState({
     open: false,
     exam_code: "",
   });
+  const [autoGradingTotalMarks, setAutoGradingTotalMarks] = useState(undefined);
 
   const navigate = useNavigate();
   const handleSubmitExam = (event) => {
-    console.log(questions);
     if (examTitle === "") {
       toast.error("Exam title is required");
+      return;
+    }
+    if (grading === "") {
+      toast.error("Grading Method is required");
+      return;
+    }
+    if (questions.length === 0) {
+      toast.error("Exam without questions can't be created");
       return;
     }
     const exam = {
       exam_title: examTitle,
       duration_min: duration,
-      scheduled_date: date,
-      questions: questions.map(({ edit, ...rest }) => rest),
+      grading,
+      scheduled_date: date?.toISOString(),
+      questions: (() => {
+        if (grading === "no-grading") {
+          return questions.map(({ edit, marks, ...rest }) => rest);
+        } else if (grading === "auto-grading") {
+          const resultant = questions.map((question) => ({
+            ...question,
+            marks: autoGradingTotalMarks / questions.length,
+          }));
+          return resultant.map(({ edit, ...rest }) => rest);
+        } else if (grading === "manual-grading") {
+          return questions.map(({ edit, ...rest }) => rest);
+        }
+      })(),
     };
+    console.log(exam);
     const apiendpoint = `${protocol}://${localIp}:3000/api/exam/new-exam`;
     axios
       .post(apiendpoint, exam, {
@@ -106,8 +130,7 @@ function CreateExamPage() {
           console.log(error.message);
         }
       });
-
-    };
+  };
 
   const handleAddOption = () => {
     SetNewQuestion((prev) => ({
@@ -192,14 +215,23 @@ function CreateExamPage() {
     });
   };
 
+  useEffect(() => console.log(newQuestion), [newQuestion]);
+
   const handleNewQuestionSubmit = (event) => {
     event.preventDefault();
 
-    const { title, questionType, options, correctOptions } = newQuestion;
+    const { title, questionType, options, correctOptions, marks } = newQuestion;
     const isChoiceQuestion = questionType === "single-choice" || questionType === "multi-choice";
-
-    if (!title || !questionType) {
-      toast.error("Please provide a question title and type.");
+    if ((grading === "manual-grading" && marks === undefined) || isNaN(marks)) {
+      toast.error("Please provide the marks for the new question");
+      return false;
+    }
+    if (!title) {
+      toast.error("Please provide a question title to add new question.");
+      return false;
+    }
+    if (!questionType) {
+      toast.error("Please provide a question type to add new question.");
       return false;
     }
     if (isChoiceQuestion && options.some((opt) => opt.title === "")) {
@@ -373,10 +405,31 @@ function CreateExamPage() {
     );
   };
 
+  const handleQuestionMarkChangeUpdate = (value, questionId) => {
+    SetQuestions((prev) => {
+      return prev.map((questionId) => {
+        if (questionId === questionId.id) {
+          return {
+            ...question,
+            marks: value,
+          };
+        }
+        return question;
+      });
+    });
+  };
+
+  const handleQuestionMarkChange = (value) => {
+    SetNewQuestion((prev) => ({
+      ...prev,
+      marks: value,
+    }));
+  };
+
   return (
     <div className="form-container w-full p-10 md:p-24">
-      <div className="grid grid-cols-1 md:grid-cols-3 items-center w-fit gap-5">
-        <Label htmlFor="exam_title" className="md:col-start-1">
+      <div className="grid grid-cols-1 md:grid-cols-4 items-center w-fit gap-5">
+        <Label htmlFor="exam_title" className=" md:col-start-1">
           Exam Title
         </Label>
         <Input
@@ -389,7 +442,6 @@ function CreateExamPage() {
           name="exam_title"
           className="md:col-start-2 md:col-span-2"
         />
-
         <Label htmlFor="duration" className="md:col-start-1">
           Duration
         </Label>
@@ -402,15 +454,38 @@ function CreateExamPage() {
           name="duration"
           className="md:col-start-2"
         />
-
-        <Label htmlFor="date" className="md:col-start-1">
+        <Label htmlFor="date" className="md:col-start-3">
           Schedule Exam On
         </Label>
-        <DateTimePicker24h
-          id="date"
-          className="md:col-start-2 md:col-span-2"
-          setParentState={setDate}
-        />
+        <DateTimePicker24h id="date" className="md:col-start-4" setParentState={setDate} />
+
+        <Label className="md:col-start-1">Grading Format</Label>
+        <div className="flex gap-3 md:col-start-2">
+          <Select onValueChange={(value) => setGrading(value)} value={grading}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Grading" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Question Type</SelectLabel>
+                <SelectItem value="manual-grading">Manual Graded</SelectItem>
+                <SelectItem value="auto-grading">Auto Grading</SelectItem>
+                <SelectItem value="no-grading">No Grading</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        {grading === "auto-grading" && (
+          <>
+            <Label className="md:col-start-3">Total Marks</Label>
+            <Input
+              className="md:col-start-4"
+              value={autoGradingTotalMarks}
+              onChange={(e) => setAutoGradingTotalMarks(e.target.value)}
+              type="number"
+            />
+          </>
+        )}
       </div>
       <ToastContainer />
       {questions.map((question) => {
@@ -422,7 +497,14 @@ function CreateExamPage() {
                   {"Q" + question.id + ". " + question.title}
                 </CardTitle>
                 <CardAction>
-                  <Check color="#00c20d" strokeWidth={3} />
+                  {grading === "auto-grading" && (
+                    <h3>
+                      {isNaN(autoGradingTotalMarks / questions.length)
+                        ? ""
+                        : autoGradingTotalMarks / questions.length}
+                    </h3>
+                  )}
+                  {grading === "manual-grading" && <h3>{question.marks}</h3>}
                 </CardAction>
               </CardHeader>
               <CardContent>
@@ -459,29 +541,42 @@ function CreateExamPage() {
             <Card className="my-10">
               <CardHeader>
                 <CardTitle className="text-xl flex gap-x-2">
-                  <Input
+                  <Textarea
+                    rows={1}
                     placeholder="Question Title"
                     onChange={(e) => handleQuestionUpdate(e.target.value, question.id)}
                     value={question.title}
                     type="text"
                     autoFocus
                   />
-                  <Select
-                    onValueChange={(value) => handleQuestionTypeUpdate(value, question.id)}
-                    value={question.questionType}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Question Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Question Type</SelectLabel>
-                        <SelectItem value="single-choice">Single Choice</SelectItem>
-                        <SelectItem value="multi-choice">Multi Choice</SelectItem>
-                        <SelectItem value="text">Text</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex-col flex gap-2">
+                    <Select
+                      onValueChange={(value) => handleQuestionTypeUpdate(value, question.id)}
+                      value={question.questionType}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Question Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Question Type</SelectLabel>
+                          <SelectItem value="single-choice">Single Choice</SelectItem>
+                          <SelectItem value="multi-choice">Multi Choice</SelectItem>
+                          <SelectItem value="text">Text</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {grading === "manual-grading" && (
+                      <Input
+                        type="number"
+                        placeholder="Marks"
+                        onChange={(e) =>
+                          handleQuestionMarkChangeUpdate(e.target.value, question.id)
+                        }
+                        value={question.marks}
+                      />
+                    )}
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-y-4 ml-5">
@@ -496,7 +591,8 @@ function CreateExamPage() {
                         }
                         checked={question.correctOptions.includes(option.id)}
                       />
-                      <Input
+                      <Textarea
+                        rows={1}
                         value={option.title}
                         onChange={(e) => handleOptionUpdate(e.target.value, option.id, question.id)}
                         type="text"
@@ -536,26 +632,37 @@ function CreateExamPage() {
         <Card className="my-10">
           <CardHeader>
             <CardTitle className="text-xl flex gap-x-2">
-              <Input
+              <Textarea
                 placeholder="Question Title"
                 onChange={(e) => handleQuestionChange(e.target.value)}
                 value={newQuestion.title}
                 type="text"
                 autoFocus
               />
-              <Select onValueChange={handleQuestionTypeChange} value={newQuestion.questionType}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Question Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Question Type</SelectLabel>
-                    <SelectItem value="single-choice">Single Choice</SelectItem>
-                    <SelectItem value="multi-choice">Multi Choice</SelectItem>
-                    <SelectItem value="text">Text</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <div className="flex-col flex gap-4">
+                <Select onValueChange={handleQuestionTypeChange} value={newQuestion.questionType}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Question Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Question Type</SelectLabel>
+                      <SelectItem value="single-choice">Single Choice</SelectItem>
+                      <SelectItem value="multi-choice">Multi Choice</SelectItem>
+                      <SelectItem value="text">Text</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                {grading === "manual-grading" && (
+                  <Input
+                    value={newQuestion.marks}
+                    onChange={(e) => handleQuestionMarkChange(parseInt(e.target.value))}
+                    placeholder="Marks"
+                    type="number"
+                    className="w-[50%]"
+                  />
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-y-4 ml-5">
