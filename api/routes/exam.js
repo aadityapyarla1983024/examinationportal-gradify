@@ -3,6 +3,7 @@ import db from "../db.js";
 import verfiyToken from "../middleware/tokenverify.middleware.js";
 import { constants } from "../../config/constants.js";
 import generateExamCode from "../utilities/examcodegenerator.js";
+import * as z from "zod";
 const app = express();
 const exam = app.use(express.Router());
 
@@ -12,13 +13,33 @@ const QUESTION_TYPES = {
   text: 3,
 };
 
+const Exam = z.object({
+  duration_min: z.int(),
+  exam_title: z.string({
+    required_error: "Exam title is required",
+    invalid_type_error: "Exam title cannot be null",
+  }),
+  scheduled_date: z.iso.datetime(),
+});
+
 exam.post("/new-exam", verfiyToken, async (req, res) => {
   const { exam_title, duration_min, scheduled_date, questions } = req.body;
+
+  const result = Exam.safeParse({ duration_min, scheduled_date, exam_title });
+  if (!result.success) {
+    return res.status(constants.HTTP_STATUS.BAD_REQUEST).send({
+      error: z.flattenError(result.error).fieldErrors,
+      message: "Data not provided in the required format",
+    });
+  }
+
+  const date = new Date(scheduled_date);
+  const datetime = `${date.getFullYear()}-${date.getMonth()}-${date.getDay()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
   const { user_id } = req;
-  if (!exam_title || !questions)
+  if (!questions)
     return res
       .status(constants.HTTP_STATUS.BAD_REQUEST)
-      .send({ message: "Question title and questions not provided" });
+      .send({ message: "Questions not provided" });
 
   const connection = await db.getConnection();
   try {
@@ -33,7 +54,7 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
       user_id,
       exam_code,
       ...(duration_min ? [duration_min] : []),
-      ...(scheduled_date ? [scheduled_date] : []),
+      ...(scheduled_date ? [datetime] : []),
       exam_title,
     ];
     const [examResult] = await connection.query(insertExam, examData);
