@@ -14,16 +14,16 @@ const QUESTION_TYPES = {
 };
 
 const Exam = z.object({
-  duration_min: z.int(),
+  duration_min: z.int().optional(),
   exam_title: z.string({
     required_error: "Exam title is required",
     invalid_type_error: "Exam title cannot be null",
   }),
-  scheduled_date: z.iso.datetime(),
+  scheduled_date: z.iso.datetime().optional(),
 });
 
 exam.post("/new-exam", verfiyToken, async (req, res) => {
-  const { exam_title, duration_min, scheduled_date, questions } = req.body;
+  const { exam_title, duration_min, scheduled_date, questions, grading } = req.body;
 
   const result = Exam.safeParse({ duration_min, scheduled_date, exam_title });
   if (!result.success) {
@@ -44,15 +44,16 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    const insertExam = `INSERT INTO exam (user_id, exam_code ${
+    const insertExam = `INSERT INTO exam (user_id, exam_code, grading ${
       duration_min ? ", duration_min" : ""
-    } ${scheduled_date ? ", scheduled_date" : ""}, title) VALUES (?, ? ${
+    } ${scheduled_date ? ", scheduled_date" : ""}, title) VALUES (?, ?, ? ${
       duration_min ? ", ?" : ""
     } ${scheduled_date ? ", ?" : ""} , ?)`;
     const exam_code = generateExamCode(user_id);
     const examData = [
       user_id,
       exam_code,
+      grading,
       ...(duration_min ? [duration_min] : []),
       ...(scheduled_date ? [datetime] : []),
       exam_title,
@@ -60,11 +61,13 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
     const [examResult] = await connection.query(insertExam, examData);
     const exam_id = examResult.insertId;
     for (const question of questions) {
-      const insertQuestion =
-        "INSERT INTO question (exam_id, title, question_type) VALUES (?, ?, ?);";
+      const insertQuestion = `INSERT INTO question (exam_id, title ${
+        grading !== "no-grading" ? ", marks" : ""
+      }, question_type) VALUES (? ${grading !== "no-grading" ? ", ?" : ""}, ?, ?);`;
       const [questionResult] = await connection.query(insertQuestion, [
         exam_id,
         question.title,
+        ...(grading !== "no-grading" ? [question.marks] : []),
         QUESTION_TYPES[question.questionType],
       ]);
       const question_id = questionResult.insertId;
