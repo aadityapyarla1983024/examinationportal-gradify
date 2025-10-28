@@ -77,7 +77,7 @@ function CreateExamPage() {
     const exam = {
       exam_title: examTitle,
       duration_min: duration,
-      scheduled_date: date,
+      scheduled_date: date?.toISOString(),
       questions: questions.map(({ edit, ...rest }) => rest),
     };
     const apiendpoint = `${protocol}://${localIp}:3000/api/exam/new-exam`;
@@ -106,8 +106,7 @@ function CreateExamPage() {
           console.log(error.message);
         }
       });
-
-    };
+  };
 
   const handleAddOption = () => {
     SetNewQuestion((prev) => ({

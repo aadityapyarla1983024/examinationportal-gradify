@@ -26,6 +26,7 @@ app.use(
 );
 app.use("/api/auth", auth);
 app.use("/api/profile", profile);
+app.use("/api/exam", exam);
 
 const PORT = config.server.api.port;
 const HOST = config.server.api.host;
