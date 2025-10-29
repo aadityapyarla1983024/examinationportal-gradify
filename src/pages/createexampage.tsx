@@ -23,27 +23,22 @@ import {
   CreateMultiChoiceOptions,
   CreateSingleChoiceOptions,
 } from "@/components/ui/shadcn-io/radio-group/newquestionoptions";
-import { Check, Pencil, Plus, X, ChevronDownIcon, GitGraph } from "lucide-react";
+import { Pencil, Plus, X } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { title } from "process";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { DateTimePicker24h } from "@/components/datetimepicker";
 import axios from "axios";
 import { UserContext } from "@/App";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { CopyButton } from "@/components/ui/shadcn-io/copy-button";
 const createBlankQuestion = () => ({
@@ -72,6 +67,7 @@ function CreateExamPage() {
 
   const navigate = useNavigate();
   const handleSubmitExam = (event) => {
+    event.preventDefault();
     if (examTitle === "") {
       toast.error("Exam title is required");
       return;
@@ -154,7 +150,9 @@ function CreateExamPage() {
     }
 
     SetNewQuestion((prev) => {
-      const filteredOptions = prev.options.filter((option) => option.id !== optionIdToDelete);
+      const filteredOptions = prev.options.filter(
+        (option) => option.id !== optionIdToDelete
+      );
       const renumberedOptions = filteredOptions.map((option, index) => ({
         ...option,
         id: index + 1,
@@ -207,7 +205,8 @@ function CreateExamPage() {
 
       let newCorrectOptions = [...prev.correctOptions];
       if (checked) {
-        if (!newCorrectOptions.includes(optionId)) newCorrectOptions.push(optionId);
+        if (!newCorrectOptions.includes(optionId))
+          newCorrectOptions.push(optionId);
       } else {
         newCorrectOptions = newCorrectOptions.filter((id) => id !== optionId);
       }
@@ -221,8 +220,9 @@ function CreateExamPage() {
     event.preventDefault();
 
     const { title, questionType, options, correctOptions, marks } = newQuestion;
-    const isChoiceQuestion = questionType === "single-choice" || questionType === "multi-choice";
-    if ((grading === "manual-grading" && marks === undefined) || isNaN(marks)) {
+    const isChoiceQuestion =
+      questionType === "single-choice" || questionType === "multi-choice";
+    if (grading === "manual-grading" && (marks === undefined || isNaN(marks))) {
       toast.error("Please provide the marks for the new question");
       return false;
     }
@@ -244,7 +244,10 @@ function CreateExamPage() {
     }
 
     SetQuestions((prevQuestions) => {
-      const newId = prevQuestions.length > 0 ? Math.max(...prevQuestions.map((q) => q.id)) + 1 : 1;
+      const newId =
+        prevQuestions.length > 0
+          ? Math.max(...prevQuestions.map((q) => q.id)) + 1
+          : 1;
       const questionToAdd = { ...newQuestion, id: newId };
       return [...prevQuestions, questionToAdd];
     });
@@ -255,8 +258,10 @@ function CreateExamPage() {
 
   const editQuestion = (questionId) => {
     SetQuestions((prev) => {
-      let newQuestions = [...prev];
-      const index = newQuestions.findIndex((question) => question.id === questionId);
+      const newQuestions = [...prev];
+      const index = newQuestions.findIndex(
+        (question) => question.id === questionId
+      );
       newQuestions[index].edit = true;
       return newQuestions;
     });
@@ -302,7 +307,9 @@ function CreateExamPage() {
           return question;
         }
 
-        const filteredOptions = question.options.filter((option) => option.id !== optionIdToDelete);
+        const filteredOptions = question.options.filter(
+          (option) => option.id !== optionIdToDelete
+        );
         const renumberedOptions = filteredOptions.map((option, index) => ({
           ...option,
           id: index + 1,
@@ -381,7 +388,8 @@ function CreateExamPage() {
 
         let newCorrectOptions = [...question.correctOptions];
         if (checked) {
-          if (!newCorrectOptions.includes(optionId)) newCorrectOptions.push(optionId);
+          if (!newCorrectOptions.includes(optionId))
+            newCorrectOptions.push(optionId);
         } else {
           newCorrectOptions = newCorrectOptions.filter((id) => id !== optionId);
         }
@@ -407,7 +415,7 @@ function CreateExamPage() {
 
   const handleQuestionMarkChangeUpdate = (value, questionId) => {
     SetQuestions((prev) => {
-      return prev.map((questionId) => {
+      return prev.map((question) => {
         if (questionId === questionId.id) {
           return {
             ...question,
@@ -457,7 +465,11 @@ function CreateExamPage() {
         <Label htmlFor="date" className="md:col-start-3">
           Schedule Exam On
         </Label>
-        <DateTimePicker24h id="date" className="md:col-start-4" setParentState={setDate} />
+        <DateTimePicker24h
+          id="date"
+          className="md:col-start-4"
+          setParentState={setDate}
+        />
 
         <Label className="md:col-start-1">Grading Format</Label>
         <div className="flex gap-3 md:col-start-2">
@@ -521,7 +533,7 @@ function CreateExamPage() {
               </CardContent>
               <CardFooter className="flex gap-x-2">
                 <Button
-                  onClick={(e) => {
+                  onClick={() => {
                     editQuestion(question.id);
                   }}
                   variant={"ghost"}
@@ -529,7 +541,11 @@ function CreateExamPage() {
                   <Pencil />
                   Edit Question
                 </Button>
-                <Button type="button" onClick={() => deleteQuestion(question.id)} variant={"ghost"}>
+                <Button
+                  type="button"
+                  onClick={() => deleteQuestion(question.id)}
+                  variant={"ghost"}
+                >
                   <X />
                   Delete
                 </Button>
@@ -544,14 +560,18 @@ function CreateExamPage() {
                   <Textarea
                     rows={1}
                     placeholder="Question Title"
-                    onChange={(e) => handleQuestionUpdate(e.target.value, question.id)}
+                    onChange={(e) =>
+                      handleQuestionUpdate(e.target.value, question.id)
+                    }
                     value={question.title}
                     type="text"
                     autoFocus
                   />
                   <div className="flex-col flex gap-2">
                     <Select
-                      onValueChange={(value) => handleQuestionTypeUpdate(value, question.id)}
+                      onValueChange={(value) =>
+                        handleQuestionTypeUpdate(value, question.id)
+                      }
                       value={question.questionType}
                     >
                       <SelectTrigger className="w-[180px]">
@@ -560,8 +580,12 @@ function CreateExamPage() {
                       <SelectContent>
                         <SelectGroup>
                           <SelectLabel>Question Type</SelectLabel>
-                          <SelectItem value="single-choice">Single Choice</SelectItem>
-                          <SelectItem value="multi-choice">Multi Choice</SelectItem>
+                          <SelectItem value="single-choice">
+                            Single Choice
+                          </SelectItem>
+                          <SelectItem value="multi-choice">
+                            Multi Choice
+                          </SelectItem>
                           <SelectItem value="text">Text</SelectItem>
                         </SelectGroup>
                       </SelectContent>
@@ -571,7 +595,10 @@ function CreateExamPage() {
                         type="number"
                         placeholder="Marks"
                         onChange={(e) =>
-                          handleQuestionMarkChangeUpdate(e.target.value, question.id)
+                          handleQuestionMarkChangeUpdate(
+                            e.target.value,
+                            question.id
+                          )
                         }
                         value={question.marks}
                       />
@@ -587,21 +614,33 @@ function CreateExamPage() {
                       <Checkbox
                         className="mt-2"
                         onCheckedChange={(checked) =>
-                          handleCorrectOptionCheckUpdate(checked, option.id, question.id)
+                          handleCorrectOptionCheckUpdate(
+                            checked,
+                            option.id,
+                            question.id
+                          )
                         }
                         checked={question.correctOptions.includes(option.id)}
                       />
                       <Textarea
                         rows={1}
                         value={option.title}
-                        onChange={(e) => handleOptionUpdate(e.target.value, option.id, question.id)}
+                        onChange={(e) =>
+                          handleOptionUpdate(
+                            e.target.value,
+                            option.id,
+                            question.id
+                          )
+                        }
                         type="text"
                         placeholder={"Option " + option.id.toString()}
                       />
                       <Button
                         type="button"
                         variant={"ghost"}
-                        onClick={() => handleDeleteOptionUpdate(option.id, question.id)}
+                        onClick={() =>
+                          handleDeleteOptionUpdate(option.id, question.id)
+                        }
                       >
                         <X />
                       </Button>
@@ -609,18 +648,27 @@ function CreateExamPage() {
                   ))}
                 {question.questionType === "text" && (
                   <div className="flex gap-3">
-                    <Textarea disabled placeholder="Answer in descriptive form" />
+                    <Textarea
+                      disabled
+                      placeholder="Answer in descriptive form"
+                    />
                   </div>
                 )}
               </CardContent>
               <CardFooter>
                 {(question.questionType === "single-choice" ||
                   question.questionType === "multi-choice") && (
-                  <Button type="button" onClick={(e) => handleAddOptionUpdate(question.id)}>
+                  <Button
+                    type="button"
+                    onClick={() => handleAddOptionUpdate(question.id)}
+                  >
                     <Plus className="mr-2 h-4 w-4" /> Add Option
                   </Button>
                 )}
-                <Button onClick={(e) => updateQuestion(question.id)} variant={"ghost"}>
+                <Button
+                  onClick={() => updateQuestion(question.id)}
+                  variant={"ghost"}
+                >
                   Update
                 </Button>
               </CardFooter>
@@ -640,14 +688,19 @@ function CreateExamPage() {
                 autoFocus
               />
               <div className="flex-col flex gap-4">
-                <Select onValueChange={handleQuestionTypeChange} value={newQuestion.questionType}>
+                <Select
+                  onValueChange={handleQuestionTypeChange}
+                  value={newQuestion.questionType}
+                >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Question Type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>Question Type</SelectLabel>
-                      <SelectItem value="single-choice">Single Choice</SelectItem>
+                      <SelectItem value="single-choice">
+                        Single Choice
+                      </SelectItem>
                       <SelectItem value="multi-choice">Multi Choice</SelectItem>
                       <SelectItem value="text">Text</SelectItem>
                     </SelectGroup>
@@ -656,7 +709,9 @@ function CreateExamPage() {
                 {grading === "manual-grading" && (
                   <Input
                     value={newQuestion.marks}
-                    onChange={(e) => handleQuestionMarkChange(parseInt(e.target.value))}
+                    onChange={(e) =>
+                      handleQuestionMarkChange(parseInt(e.target.value))
+                    }
                     placeholder="Marks"
                     type="number"
                     className="w-[50%]"
@@ -679,7 +734,9 @@ function CreateExamPage() {
                   />
                   <Input
                     value={option.title}
-                    onChange={(e) => handleOptionChange(e.target.value, option.id)}
+                    onChange={(e) =>
+                      handleOptionChange(e.target.value, option.id)
+                    }
                     type="text"
                     placeholder={"Option " + option.id.toString()}
                   />
@@ -718,7 +775,11 @@ function CreateExamPage() {
           </Button>
         </div>
       </form>
-      <CopyExamCodeDialog exam_code={dialog.exam_code} navigate={navigate} open={dialog.open} />
+      <CopyExamCodeDialog
+        exam_code={dialog.exam_code}
+        navigate={navigate}
+        open={dialog.open}
+      />
     </div>
   );
 }
@@ -730,7 +791,8 @@ export function CopyExamCodeDialog({ exam_code, open, navigate }) {
         <DialogHeader>
           <DialogTitle>Your Exam Code</DialogTitle>
           <DialogDescription>
-            Copy this code to share with other users to allow them to attempt this exam.
+            Copy this code to share with other users to allow them to attempt
+            this exam.
           </DialogDescription>
           <div className="flex flex-row gap-5 mx-auto my-3">
             <span className="bg-gray-300 font-extrabold text-2xl px-2 py-1 rounded-md">
