@@ -10,6 +10,7 @@ import exam from "./routes/exam.js";
 import https from "https";
 import http from "http";
 import fs from "fs";
+import attempt from "./routes/attempt.js";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(
 app.use("/api/auth", auth);
 app.use("/api/profile", profile);
 app.use("/api/exam", exam);
+app.use("/api/attempt", attempt);
 
 const PORT = config.server.api.port;
 const HOST = config.server.api.host;

@@ -4,6 +4,8 @@ import verfiyToken from "../middleware/tokenverify.middleware.js";
 import { constants } from "../../config/constants.js";
 import generateExamCode from "../utilities/examcodegenerator.js";
 import * as z from "zod";
+import getExam from "../middleware/getexam.middleware.js";
+
 const app = express();
 const exam = app.use(express.Router());
 
@@ -23,7 +25,8 @@ const Exam = z.object({
 });
 
 exam.post("/new-exam", verfiyToken, async (req, res) => {
-  const { exam_title, duration_min, scheduled_date, questions, grading } = req.body;
+  const { exam_title, duration_min, scheduled_date, questions, grading } =
+    req.body;
 
   const result = Exam.safeParse({ duration_min, scheduled_date, exam_title });
   if (!result.success) {
@@ -63,7 +66,9 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
     for (const question of questions) {
       const insertQuestion = `INSERT INTO question (exam_id, title ${
         grading !== "no-grading" ? ", marks" : ""
-      }, question_type) VALUES (? ${grading !== "no-grading" ? ", ?" : ""}, ?, ?);`;
+      }, question_type) VALUES (? ${
+        grading !== "no-grading" ? ", ?" : ""
+      }, ?, ?);`;
       const [questionResult] = await connection.query(insertQuestion, [
         exam_id,
         question.title,
@@ -98,6 +103,21 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
   } finally {
     connection.release();
   }
+});
+
+exam.post("/get-exam", verfiyToken, getExam, async (req, res) => {
+  const { exam } = req;
+  const returnExam = {
+    ...exam,
+    questions: exam.questions.map((question) => {
+      const { correctOptions, ...questionWithoutCorrectOptions } = question;
+      return {
+        ...questionWithoutCorrectOptions,
+      };
+    }),
+  };
+
+  return res.send(returnExam);
 });
 
 export default exam;
