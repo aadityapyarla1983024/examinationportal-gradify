@@ -19,29 +19,31 @@ import { useNavigate, useParams } from "react-router-dom";
 import { UserContext } from "@/App";
 import { toast } from "react-toastify";
 
-const Timer = ({ exam_duration }) => {
-  const [timer, setTimer] = useState(
-    localStorage.getItem("timer") != null
-      ? parseInt(localStorage.getItem("timer"))
-      : exam_duration * 60
-  );
-  useEffect(() => {
-    localStorage.setItem("timer", timer);
-  }, [timer]);
+const Timer = ({ duration_min, started_at, autoSubmit, exam_attempt_id }) => {
+  const [redTimer, setRedTimer] = useState(false);
+  const startedAt = new Date(started_at);
+  const submitAt = startedAt.getTime() + duration_min * 60 * 1000;
+  const now = new Date();
+  const timeLeft = submitAt - now.getTime();
+  const [timer, setTimer] = useState(timeLeft / 1000);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setTimer((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
+          autoSubmit(exam_attempt_id);
           return 0;
+        }
+        if (prev <= 600) {
+          setRedTimer(true);
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [exam_duration]);
+  }, []);
 
   const hours = Math.floor(timer / 3600);
   const minutes = Math.floor((timer % 3600) / 60);
@@ -51,10 +53,10 @@ const Timer = ({ exam_duration }) => {
       <Card className="p-5">
         <CardTitle>
           Remaining Time:
-          {` ${String(hours).padStart(2, 0)}:${String(minutes).padStart(
+          {` ${String(hours).padStart(2, "0")}:${String(minutes).padStart(
             2,
-            0
-          )}:${String(seconds).padStart(2, 0)}`}
+            "0"
+          )}:${String(seconds).padStart(2, "0")}`}
         </CardTitle>
       </Card>
     </div>
@@ -66,7 +68,8 @@ export default function ExamAttemptPage() {
   const { excode } = useParams();
   const [examLoading, setExamLoading] = useState(true);
   const navigate = useNavigate();
-  const { protocol, localIp, user } = useContext(UserContext);
+  const [attempt, setAttempt] = useState(null);
+  const { protocol, localIp } = useContext(UserContext);
   const [answers, setAnswers] = useState(
     (() => {
       try {
@@ -80,19 +83,94 @@ export default function ExamAttemptPage() {
   );
 
   useEffect(() => {
-    axios
-      .post(
+    setExamLoading(true);
+    const processAttempt = async () => {
+      const user_token = localStorage.getItem("token");
+
+      const fetchedExam = await fetchExam(user_token);
+      setExam(fetchedExam);
+
+      const fetchedAttempt = await initializeAttempt(user_token);
+      setAttempt(fetchedAttempt);
+      if (fetchedExam && fetchedAttempt) {
+        setExamLoading(false);
+      }
+    };
+    processAttempt();
+  }, []);
+
+  const initializeAttempt = async (user_token) => {
+    try {
+      const res = await axios.post(
+        `${protocol}://${localIp}:3000/api/attempt/start-attempt`,
+        { excode },
+        {
+          headers: {
+            ["x-auth-token"]: user_token,
+          },
+        }
+      );
+      return res.data;
+    } catch (error) {
+      if (error.response) {
+        console.log(error.response.data.error);
+        toast.error(error.response.data.message);
+      } else {
+        console.log(error);
+        toast.error("Something went wrong with the fetch exam request");
+      }
+      return null;
+    }
+  };
+
+  const fetchExam = async (user_token) => {
+    try {
+      const res = await axios.post(
         `${protocol}://${localIp}:3000/api/exam/get-exam`,
         { excode },
         {
           headers: {
-            ["x-auth-token"]: localStorage.getItem("token"),
+            ["x-auth-token"]: user_token,
           },
         }
-      )
+      );
+      return res.data;
+    } catch (error) {
+      if (error.response) {
+        console.log(error.response.data.error);
+        toast.error(error.response.data.message);
+      } else {
+        console.log(error);
+        toast.error("Something went wrong with the fetch exam request");
+      }
+      navigate("/dashboard/enter-exam");
+    }
+  };
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      localStorage.setItem("attempt", JSON.stringify(answers));
+    }, 1000);
+    return () => clearTimeout(timerId);
+  }, [answers]);
+
+  const submitExam = () => {
+    const reqBody = {
+      excode,
+      answers,
+      exam_attempt_id: attempt.exam_attempt_id,
+    };
+    const apiendpoint = `${protocol}://${localIp}:3000/api/attempt/submit-exam`;
+    axios
+      .post(apiendpoint, reqBody, {
+        headers: {
+          ["x-auth-token"]: localStorage.getItem("token"),
+        },
+      })
       .then((res) => {
-        setExam(res.data);
-        setExamLoading(false);
+        toast.success(res.data.message);
+        localStorage.removeItem("attempt");
+        navigate("/dashboard/myexams");
       })
       .catch((error) => {
         if (error.response) {
@@ -105,13 +183,8 @@ export default function ExamAttemptPage() {
           toast.error("Request error");
           console.log(error.message);
         }
-        navigate("/dashboard/enter-exam");
       });
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("attempt", JSON.stringify(answers));
-  }, [answers]);
+  };
 
   const onCheckChange = (isChecked, optionId, questionId) => {
     setAnswers((prev) => {
@@ -192,7 +265,11 @@ export default function ExamAttemptPage() {
   if (!examLoading) {
     return (
       <>
-        <Timer exam_duration={exam.duration_min} />
+        <Timer
+          duration_min={exam.duration_min}
+          autoSubmit={submitExam}
+          started_at={attempt.started_at}
+        />
         <div className="w-full lg:w-[70%] mx-auto">
           <div className="flex flex-row w-full">
             <main className="flex-grow p-4">
@@ -273,7 +350,7 @@ export default function ExamAttemptPage() {
                 })}
               </div>
               <div className="flex flex-row w-full p-5">
-                <Button size={"lg"} className="ml-auto">
+                <Button size={"lg"} onClick={submitExam} className="ml-auto">
                   Submit
                 </Button>
               </div>
@@ -284,3 +361,6 @@ export default function ExamAttemptPage() {
     );
   }
 }
+
+
+  

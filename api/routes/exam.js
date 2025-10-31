@@ -6,8 +6,7 @@ import generateExamCode from "../utilities/examcodegenerator.js";
 import * as z from "zod";
 import getExam from "../middleware/getexam.middleware.js";
 
-const app = express();
-const exam = app.use(express.Router());
+const exam = express.Router();
 
 const QUESTION_TYPES = {
   "single-choice": 1,
