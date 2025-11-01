@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CopyButton } from "@/components/ui/shadcn-io/copy-button";
+import SearchTag from "@/components/searchtags";
 const createBlankQuestion = () => ({
   id: 0,
   title: "",
@@ -54,18 +55,85 @@ const createBlankQuestion = () => ({
 function CreateExamPage() {
   const [questions, SetQuestions] = useState([]);
   const [newQuestion, SetNewQuestion] = useState(createBlankQuestion());
-  const [date, setDate] = useState<Date>();
+
   const [examTitle, setExamTitle] = useState("");
   const [duration, setDuration] = useState(undefined);
-  const { user, localIp, protocol } = useContext(UserContext);
+  const [date, setDate] = useState<Date>();
+
+  const [examType, setExamType] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState<string>("");
+  const [tags, setTags] = useState([]);
+
+  const [attemptType, setAttemptType] = useState("");
+  const [noOfAttempts, setNoOfAttempts] = useState(undefined);
+
   const [grading, setGrading] = useState("");
+  const [autoGradingTotalMarks, setAutoGradingTotalMarks] = useState(undefined);
+
+  const [loading, setLoading] = useState(false);
+  const [examDescription, setExamDescription] = useState("");
+
+  const { user, localIp, protocol } = useContext(UserContext);
+  const navigate = useNavigate();
+
+  const [domains, setDomains] = useState([]);
+  const [fields, setFields] = useState([]);
+
+  const [selectedField, setSelectedField] = useState(undefined);
+  const [selectedDomain, setSelectedDomain] = useState(undefined);
+
   const [dialog, setDialog] = useState({
     open: false,
     exam_code: "",
   });
-  const [autoGradingTotalMarks, setAutoGradingTotalMarks] = useState(undefined);
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    setLoading(true);
+    const getTags = async () => {
+      try {
+        const tags = await axios.get(
+          `${protocol}://${localIp}:3000/api/exam/get-tags`,
+          {
+            headers: {
+              ["x-auth-token"]: localStorage.getItem("token"),
+            },
+          }
+        );
+        const domains = await axios.get(
+          `${protocol}://${localIp}:3000/api/exam/get-domains`,
+          {
+            headers: {
+              ["x-auth-token"]: localStorage.getItem("token"),
+            },
+          }
+        );
+        const fields = await axios.get(
+          `${protocol}://${localIp}:3000/api/exam/get-fields`,
+          {
+            headers: {
+              ["x-auth-token"]: localStorage.getItem("token"),
+            },
+          }
+        );
+        setTags(tags.data);
+        setFields(fields.data);
+        setDomains(domains.data);
+        setLoading(false);
+      } catch (error) {
+        if (error.response) {
+          console.log(error.response.data.error);
+        } else if (error.request) {
+          console.log(error.request);
+        } else {
+          console.log(error);
+        }
+        setLoading(false);
+      }
+    };
+    getTags();
+  }, []);
+
   const handleSubmitExam = (event) => {
     event.preventDefault();
     if (examTitle === "") {
@@ -76,8 +144,40 @@ function CreateExamPage() {
       toast.error("Grading Method is required");
       return;
     }
+    if (grading === "" && !autoGradingTotalMarks) {
+      toast.error("Grading Method is required");
+      return;
+    }
     if (questions.length === 0) {
       toast.error("Exam without questions can't be created");
+      return;
+    }
+    if (examType === "") {
+      toast.error("Exam without exam type can't be created");
+      return;
+    }
+    if (selectedDomain === "") {
+      toast.error("Exam without a domain can't be created");
+      return;
+    }
+    if (selectedField === "") {
+      toast.error("Exam without career field  can't be created");
+      return;
+    }
+    if (attemptType === "") {
+      toast.error("Exam without attempt type can't be created");
+      return;
+    }
+    if (attemptType === "limited-attempts" && !noOfAttempts) {
+      toast.error("Exam without no of attempts can't be created");
+      return;
+    }
+    if (examDescription === "") {
+      toast.error("Exam without description can't be created");
+      return;
+    }
+    if (selected.length === 0 && examType === "public-exam") {
+      toast.error("Public exam without search tags can't be created");
       return;
     }
     const exam = {
@@ -85,6 +185,17 @@ function CreateExamPage() {
       duration_min: duration,
       grading,
       scheduled_date: date?.toISOString(),
+      domain: selectedDomain,
+      exam_type: examType,
+      ...(examType === "public-exam" && { tags: selected }),
+      no_of_attempts: (() => {
+        if (attemptType === "unlimited-attempts") {
+          return -1;
+        } else if (attemptType === "limited-attempts") {
+          return noOfAttempts;
+        }
+      })(),
+      exam_description: examDescription,
       questions: (() => {
         if (grading === "no-grading") {
           return questions.map(({ edit, marks, ...rest }) => rest);
@@ -99,7 +210,6 @@ function CreateExamPage() {
         }
       })(),
     };
-    console.log(exam);
     const apiendpoint = `${protocol}://${localIp}:3000/api/exam/new-exam`;
     axios
       .post(apiendpoint, exam, {
@@ -214,8 +324,6 @@ function CreateExamPage() {
     });
   };
 
-  useEffect(() => console.log(newQuestion), [newQuestion]);
-
   const handleNewQuestionSubmit = (event) => {
     event.preventDefault();
 
@@ -273,6 +381,7 @@ function CreateExamPage() {
       return filtered.map((q, index) => ({ ...q, id: index + 1 }));
     });
   };
+  useEffect(() => console.log(selected), [selected]);
 
   const handleAddOptionUpdate = (questionId) => {
     SetQuestions((prev) =>
@@ -433,355 +542,484 @@ function CreateExamPage() {
       marks: value,
     }));
   };
+  if (!loading) {
+    return (
+      <div className="form-container w-full p-10 md:p-24">
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center w-fit gap-5">
+          <Label htmlFor="exam_title" className=" md:col-start-1">
+            Exam Title
+          </Label>
+          <Input
+            id="exam_title"
+            value={examTitle}
+            onChange={(e) => setExamTitle(e.target.value)}
+            type="text"
+            placeholder="Enter Exam Title"
+            required
+            name="exam_title"
+            className="md:col-start-2 md:col-span-2"
+          />
+          <Label htmlFor="duration" className="md:col-start-1">
+            Duration
+          </Label>
+          <Input
+            id="duration"
+            value={duration}
+            placeholder="Duration in min"
+            onChange={(e) => setDuration(e.target.valueAsNumber)}
+            type="number"
+            name="duration"
+            className="md:col-start-2"
+          />
+          <Label htmlFor="date" className="md:col-start-3">
+            Schedule Exam On
+          </Label>
+          <DateTimePicker24h
+            id="date"
+            className="md:col-start-4"
+            setParentState={setDate}
+          />
 
-  return (
-    <div className="form-container w-full p-10 md:p-24">
-      <div className="grid grid-cols-1 md:grid-cols-4 items-center w-fit gap-5">
-        <Label htmlFor="exam_title" className=" md:col-start-1">
-          Exam Title
-        </Label>
-        <Input
-          id="exam_title"
-          value={examTitle}
-          onChange={(e) => setExamTitle(e.target.value)}
-          type="text"
-          placeholder="Enter Exam Title"
-          required
-          name="exam_title"
-          className="md:col-start-2 md:col-span-2"
-        />
-        <Label htmlFor="duration" className="md:col-start-1">
-          Duration
-        </Label>
-        <Input
-          id="duration"
-          value={duration}
-          placeholder="Duration in min"
-          onChange={(e) => setDuration(e.target.valueAsNumber)}
-          type="number"
-          name="duration"
-          className="md:col-start-2"
-        />
-        <Label htmlFor="date" className="md:col-start-3">
-          Schedule Exam On
-        </Label>
-        <DateTimePicker24h
-          id="date"
-          className="md:col-start-4"
-          setParentState={setDate}
-        />
+          <Label className="md:col-start-1">Exam Type</Label>
+          <div className="flex gap-3 md:col-start-2">
+            <Select
+              onValueChange={(value) => setExamType(value)}
+              value={examType}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Exam Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Select exam</SelectLabel>
+                  <SelectItem value="private-exam">Private Exam</SelectItem>
+                  <SelectItem value="public-exam">Public Exam</SelectItem>
+                  <SelectItem value="personal-exam">Personal Exam</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Label className="md:col-start-1">Grading Format</Label>
-        <div className="flex gap-3 md:col-start-2">
-          <Select onValueChange={(value) => setGrading(value)} value={grading}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Grading" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Question Type</SelectLabel>
-                <SelectItem value="manual-grading">Manual Graded</SelectItem>
-                <SelectItem value="auto-grading">Auto Grading</SelectItem>
-                <SelectItem value="no-grading">No Grading</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <Label className="md:col-start-1">Exam Description</Label>
+          <Textarea
+            value={examDescription}
+            onChange={(e) => setExamDescription(e.target.value)}
+            className="md:col-start-2 md:col-span-3"
+            placeholder="Enter exam description..."
+          />
+          <Label className="md:col-start-1">Field</Label>
+          <div className="flex gap-3 md:col-start-2">
+            <Select
+              onValueChange={(value) => setSelectedField(parseInt(value))}
+              value={selectedField}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Field" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Select a field</SelectLabel>
+                  {fields.map((field) => {
+                    return (
+                      <SelectItem key={field.id} value={field.id}>
+                        {field.field_name}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <Label className="md:col-start-3">Domain</Label>
+          <div className="flex gap-3 md:col-start-4">
+            <Select
+              onValueChange={(value) => setSelectedDomain(parseInt(value))}
+              value={selectedDomain}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Domain" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Select a domain</SelectLabel>
+                  {domains.map((domain) => {
+                    if (domain.field_id === selectedField)
+                      return (
+                        <SelectItem key={domain.id} value={domain.id}>
+                          {domain.domain_name}
+                        </SelectItem>
+                      );
+                  })}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <Label className="md:col-start-1">Grading Type</Label>
+          <div className="flex gap-3 md:col-start-2">
+            <Select
+              onValueChange={(value) => setGrading(value)}
+              value={grading}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Grading" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Select grading</SelectLabel>
+                  <SelectItem value="manual-grading">Manual Graded</SelectItem>
+                  <SelectItem value="auto-grading">Auto Grading</SelectItem>
+                  <SelectItem value="no-grading">No Grading</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          {grading === "auto-grading" && (
+            <>
+              <Label className="md:col-start-3">Total Marks</Label>
+              <Input
+                placeholder="Max marks for this exam"
+                className="md:col-start-4"
+                value={autoGradingTotalMarks}
+                onChange={(e) => setAutoGradingTotalMarks(e.target.value)}
+                type="number"
+              />
+            </>
+          )}
+          <Label className="md:col-start-1">Attempts</Label>
+          <div className="flex gap-3 md:col-start-2">
+            <Select
+              onValueChange={(value) => setAttemptType(value)}
+              value={attemptType}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="No. of Attempts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Select no of attempts</SelectLabel>
+                  <SelectItem value="limited-attempts">Limited</SelectItem>
+                  <SelectItem value="unlimited-attempts">Unlimited</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          {attemptType === "limited-attempts" && (
+            <>
+              <Label className="md:col-start-3">No of Attempts</Label>
+              <Input
+                className="md:col-start-4"
+                type="number"
+                value={noOfAttempts}
+                onChange={(e) => setNoOfAttempts(e.target.valueAsNumber)}
+                placeholder="No. of Attempts"
+              />
+            </>
+          )}
+
+          {examType === "public-exam" && (
+            <>
+              <Label className="md:col-start-1">Search Tags</Label>
+              <SearchTag
+                selected={selected}
+                setSelected={setSelected}
+                newTag={newTag}
+                setNewTag={setNewTag}
+                tags={tags}
+                setTags={setTags}
+                className="md:col-start-2"
+              />
+            </>
+          )}
         </div>
-        {grading === "auto-grading" && (
-          <>
-            <Label className="md:col-start-3">Total Marks</Label>
-            <Input
-              className="md:col-start-4"
-              value={autoGradingTotalMarks}
-              onChange={(e) => setAutoGradingTotalMarks(e.target.value)}
-              type="number"
-            />
-          </>
-        )}
-      </div>
-      <ToastContainer />
-      {questions.map((question) => {
-        if (question.edit !== true) {
-          return (
-            <Card key={question.id} className="my-10">
-              <CardHeader>
-                <CardTitle className="text-xl">
-                  {"Q" + question.id + ". " + question.title}
-                </CardTitle>
-                <CardAction>
-                  {grading === "auto-grading" && (
-                    <h3>
-                      {isNaN(autoGradingTotalMarks / questions.length)
-                        ? ""
-                        : autoGradingTotalMarks / questions.length}
-                    </h3>
-                  )}
-                  {grading === "manual-grading" && <h3>{question.marks}</h3>}
-                </CardAction>
-              </CardHeader>
-              <CardContent>
-                {question.questionType === "text" && (
-                  <Textarea disabled placeholder="Answer in descriptive form" />
-                )}
-
-                {question.questionType === "single-choice" && (
-                  <CreateSingleChoiceOptions options={question.options} />
-                )}
-                {question.questionType === "multi-choice" && (
-                  <CreateMultiChoiceOptions options={question.options} />
-                )}
-              </CardContent>
-              <CardFooter className="flex gap-x-2">
-                <Button
-                  onClick={() => {
-                    editQuestion(question.id);
-                  }}
-                  variant={"ghost"}
-                >
-                  <Pencil />
-                  Edit Question
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => deleteQuestion(question.id)}
-                  variant={"ghost"}
-                >
-                  <X />
-                  Delete
-                </Button>
-              </CardFooter>
-            </Card>
-          );
-        } else {
-          return (
-            <Card className="my-10">
-              <CardHeader>
-                <CardTitle className="text-xl flex gap-x-2">
-                  <Textarea
-                    rows={1}
-                    placeholder="Question Title"
-                    onChange={(e) =>
-                      handleQuestionUpdate(e.target.value, question.id)
-                    }
-                    value={question.title}
-                    type="text"
-                    autoFocus
-                  />
-                  <div className="flex-col flex gap-2">
-                    <Select
-                      onValueChange={(value) =>
-                        handleQuestionTypeUpdate(value, question.id)
-                      }
-                      value={question.questionType}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Question Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Question Type</SelectLabel>
-                          <SelectItem value="single-choice">
-                            Single Choice
-                          </SelectItem>
-                          <SelectItem value="multi-choice">
-                            Multi Choice
-                          </SelectItem>
-                          <SelectItem value="text">Text</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                    {grading === "manual-grading" && (
-                      <Input
-                        type="number"
-                        placeholder="Marks"
-                        onChange={(e) =>
-                          handleQuestionMarkChangeUpdate(
-                            e.target.value,
-                            question.id
-                          )
-                        }
-                        value={question.marks}
-                      />
+        <ToastContainer />
+        {questions.map((question) => {
+          if (question.edit !== true) {
+            return (
+              <Card key={question.id} className="my-10">
+                <CardHeader>
+                  <CardTitle className="text-xl">
+                    {"Q" + question.id + ". " + question.title}
+                  </CardTitle>
+                  <CardAction>
+                    {grading === "auto-grading" && (
+                      <h3>
+                        {isNaN(autoGradingTotalMarks / questions.length)
+                          ? ""
+                          : autoGradingTotalMarks / questions.length}
+                      </h3>
                     )}
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-y-4 ml-5">
-                {(question.questionType === "multi-choice" ||
-                  question.questionType === "single-choice") &&
-                  question.options.map((option) => (
-                    <div className="flex gap-3" key={option.id}>
-                      <Checkbox
-                        className="mt-2"
-                        onCheckedChange={(checked) =>
-                          handleCorrectOptionCheckUpdate(
-                            checked,
-                            option.id,
-                            question.id
-                          )
-                        }
-                        checked={question.correctOptions.includes(option.id)}
-                      />
-                      <Textarea
-                        rows={1}
-                        value={option.title}
-                        onChange={(e) =>
-                          handleOptionUpdate(
-                            e.target.value,
-                            option.id,
-                            question.id
-                          )
-                        }
-                        type="text"
-                        placeholder={"Option " + option.id.toString()}
-                      />
-                      <Button
-                        type="button"
-                        variant={"ghost"}
-                        onClick={() =>
-                          handleDeleteOptionUpdate(option.id, question.id)
-                        }
-                      >
-                        <X />
-                      </Button>
-                    </div>
-                  ))}
-                {question.questionType === "text" && (
-                  <div className="flex gap-3">
+                    {grading === "manual-grading" && <h3>{question.marks}</h3>}
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  {question.questionType === "text" && (
                     <Textarea
                       disabled
                       placeholder="Answer in descriptive form"
                     />
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter>
-                {(question.questionType === "single-choice" ||
-                  question.questionType === "multi-choice") && (
+                  )}
+
+                  {question.questionType === "single-choice" && (
+                    <CreateSingleChoiceOptions options={question.options} />
+                  )}
+                  {question.questionType === "multi-choice" && (
+                    <CreateMultiChoiceOptions options={question.options} />
+                  )}
+                </CardContent>
+                <CardFooter className="flex gap-x-2">
                   <Button
-                    type="button"
-                    onClick={() => handleAddOptionUpdate(question.id)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" /> Add Option
-                  </Button>
-                )}
-                <Button
-                  onClick={() => updateQuestion(question.id)}
-                  variant={"ghost"}
-                >
-                  Update
-                </Button>
-              </CardFooter>
-            </Card>
-          );
-        }
-      })}
-      <form onSubmit={handleNewQuestionSubmit}>
-        <Card className="my-10">
-          <CardHeader>
-            <CardTitle className="text-xl flex gap-x-2">
-              <Textarea
-                placeholder="Question Title"
-                onChange={(e) => handleQuestionChange(e.target.value)}
-                value={newQuestion.title}
-                type="text"
-                autoFocus
-              />
-              <div className="flex-col flex gap-4">
-                <Select
-                  onValueChange={handleQuestionTypeChange}
-                  value={newQuestion.questionType}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Question Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Question Type</SelectLabel>
-                      <SelectItem value="single-choice">
-                        Single Choice
-                      </SelectItem>
-                      <SelectItem value="multi-choice">Multi Choice</SelectItem>
-                      <SelectItem value="text">Text</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                {grading === "manual-grading" && (
-                  <Input
-                    value={newQuestion.marks}
-                    onChange={(e) =>
-                      handleQuestionMarkChange(parseInt(e.target.value))
-                    }
-                    placeholder="Marks"
-                    type="number"
-                    className="w-[50%]"
-                  />
-                )}
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-y-4 ml-5">
-            {(newQuestion.questionType === "multi-choice" ||
-              newQuestion.questionType === "single-choice") &&
-              newQuestion.options.map((option) => (
-                <div className="flex gap-3" key={option.id}>
-                  <Checkbox
-                    className="mt-2"
-                    onCheckedChange={(checked) =>
-                      handleCorrectOptionCheckChange(checked, option.id)
-                    }
-                    checked={newQuestion.correctOptions.includes(option.id)}
-                  />
-                  <Input
-                    value={option.title}
-                    onChange={(e) =>
-                      handleOptionChange(e.target.value, option.id)
-                    }
-                    type="text"
-                    placeholder={"Option " + option.id.toString()}
-                  />
-                  <Button
-                    type="button"
+                    onClick={() => {
+                      editQuestion(question.id);
+                    }}
                     variant={"ghost"}
-                    onClick={() => handleDeleteOption(option.id)}
+                  >
+                    <Pencil />
+                    Edit Question
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => deleteQuestion(question.id)}
+                    variant={"ghost"}
                   >
                     <X />
+                    Delete
                   </Button>
+                </CardFooter>
+              </Card>
+            );
+          } else {
+            return (
+              <Card className="my-10">
+                <CardHeader>
+                  <CardTitle className="text-xl flex gap-x-2">
+                    <Textarea
+                      rows={1}
+                      placeholder="Question Title"
+                      onChange={(e) =>
+                        handleQuestionUpdate(e.target.value, question.id)
+                      }
+                      value={question.title}
+                      type="text"
+                      autoFocus
+                    />
+                    <div className="flex-col flex gap-2">
+                      <Select
+                        onValueChange={(value) =>
+                          handleQuestionTypeUpdate(value, question.id)
+                        }
+                        value={question.questionType}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Question Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Question Type</SelectLabel>
+                            <SelectItem value="single-choice">
+                              Single Choice
+                            </SelectItem>
+                            <SelectItem value="multi-choice">
+                              Multi Choice
+                            </SelectItem>
+                            <SelectItem value="text">Text</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      {grading === "manual-grading" && (
+                        <Input
+                          type="number"
+                          placeholder="Marks"
+                          onChange={(e) =>
+                            handleQuestionMarkChangeUpdate(
+                              e.target.value,
+                              question.id
+                            )
+                          }
+                          value={question.marks}
+                        />
+                      )}
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-y-4 ml-5">
+                  {(question.questionType === "multi-choice" ||
+                    question.questionType === "single-choice") &&
+                    question.options.map((option) => (
+                      <div className="flex gap-3" key={option.id}>
+                        <Checkbox
+                          className="mt-2"
+                          onCheckedChange={(checked) =>
+                            handleCorrectOptionCheckUpdate(
+                              checked,
+                              option.id,
+                              question.id
+                            )
+                          }
+                          checked={question.correctOptions.includes(option.id)}
+                        />
+                        <Textarea
+                          rows={1}
+                          value={option.title}
+                          onChange={(e) =>
+                            handleOptionUpdate(
+                              e.target.value,
+                              option.id,
+                              question.id
+                            )
+                          }
+                          type="text"
+                          placeholder={"Option " + option.id.toString()}
+                        />
+                        <Button
+                          type="button"
+                          variant={"ghost"}
+                          onClick={() =>
+                            handleDeleteOptionUpdate(option.id, question.id)
+                          }
+                        >
+                          <X />
+                        </Button>
+                      </div>
+                    ))}
+                  {question.questionType === "text" && (
+                    <div className="flex gap-3">
+                      <Textarea
+                        disabled
+                        placeholder="Answer in descriptive form"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter>
+                  {(question.questionType === "single-choice" ||
+                    question.questionType === "multi-choice") && (
+                    <Button
+                      type="button"
+                      onClick={() => handleAddOptionUpdate(question.id)}
+                    >
+                      <Plus className="mr-2 h-4 w-4" /> Add Option
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => updateQuestion(question.id)}
+                    variant={"ghost"}
+                  >
+                    Update
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          }
+        })}
+        <form onSubmit={handleNewQuestionSubmit}>
+          <Card className="my-10">
+            <CardHeader>
+              <CardTitle className="text-xl flex gap-x-2">
+                <Textarea
+                  placeholder="Question Title"
+                  onChange={(e) => handleQuestionChange(e.target.value)}
+                  value={newQuestion.title}
+                  type="text"
+                  autoFocus
+                />
+                <div className="flex-col flex gap-4">
+                  <Select
+                    onValueChange={handleQuestionTypeChange}
+                    value={newQuestion.questionType}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Question Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Question Type</SelectLabel>
+                        <SelectItem value="single-choice">
+                          Single Choice
+                        </SelectItem>
+                        <SelectItem value="multi-choice">
+                          Multi Choice
+                        </SelectItem>
+                        <SelectItem value="text">Text</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  {grading === "manual-grading" && (
+                    <Input
+                      value={newQuestion.marks}
+                      onChange={(e) =>
+                        handleQuestionMarkChange(parseInt(e.target.value))
+                      }
+                      placeholder="Marks"
+                      type="number"
+                      className="w-[50%]"
+                    />
+                  )}
                 </div>
-              ))}
-            {newQuestion.questionType === "text" && (
-              <div className="flex gap-3">
-                <Textarea disabled placeholder="Answer in descriptive form" />
-              </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            {(newQuestion.questionType === "single-choice" ||
-              newQuestion.questionType === "multi-choice") && (
-              <Button type="button" onClick={handleAddOption}>
-                <Plus className="mr-2 h-4 w-4" /> Add Option
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-y-4 ml-5">
+              {(newQuestion.questionType === "multi-choice" ||
+                newQuestion.questionType === "single-choice") &&
+                newQuestion.options.map((option) => (
+                  <div className="flex gap-3" key={option.id}>
+                    <Checkbox
+                      className="mt-2"
+                      onCheckedChange={(checked) =>
+                        handleCorrectOptionCheckChange(checked, option.id)
+                      }
+                      checked={newQuestion.correctOptions.includes(option.id)}
+                    />
+                    <Input
+                      value={option.title}
+                      onChange={(e) =>
+                        handleOptionChange(e.target.value, option.id)
+                      }
+                      type="text"
+                      placeholder={"Option " + option.id.toString()}
+                    />
+                    <Button
+                      type="button"
+                      variant={"ghost"}
+                      onClick={() => handleDeleteOption(option.id)}
+                    >
+                      <X />
+                    </Button>
+                  </div>
+                ))}
+              {newQuestion.questionType === "text" && (
+                <div className="flex gap-3">
+                  <Textarea disabled placeholder="Answer in descriptive form" />
+                </div>
+              )}
+            </CardContent>
+            <CardFooter>
+              {(newQuestion.questionType === "single-choice" ||
+                newQuestion.questionType === "multi-choice") && (
+                <Button type="button" onClick={handleAddOption}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Option
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
 
-        <div className="newquestionbuttoncontainer gap-2 flex justify-end">
-          <Button type="submit">
-            <Plus />
-            Add Question
-          </Button>
-          <Button type="button" onClick={(e) => handleSubmitExam(e)}>
-            Create Exam
-          </Button>
-        </div>
-      </form>
-      <CopyExamCodeDialog
-        exam_code={dialog.exam_code}
-        navigate={navigate}
-        open={dialog.open}
-      />
-    </div>
-  );
+          <div className="newquestionbuttoncontainer gap-2 flex justify-end">
+            <Button type="submit">
+              <Plus />
+              Add Question
+            </Button>
+            <Button type="button" onClick={(e) => handleSubmitExam(e)}>
+              Create Exam
+            </Button>
+          </div>
+        </form>
+        <CopyExamCodeDialog
+          exam_code={dialog.exam_code}
+          navigate={navigate}
+          open={dialog.open}
+        />
+      </div>
+    );
+  }
 }
 
 export function CopyExamCodeDialog({ exam_code, open, navigate }) {
