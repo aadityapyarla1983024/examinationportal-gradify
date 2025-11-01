@@ -46,25 +46,61 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    const insertExam = `INSERT INTO exam (user_id, exam_code, grading ${
-      duration_min ? ", duration_min" : ""
-    } ${scheduled_date ? ", scheduled_date" : ""}, title) VALUES (?, ?, ? ${
-      duration_min ? ", ?" : ""
-    } ${scheduled_date ? ", ?" : ""} , ?)`;
+    const insertExam = `INSERT INTO exam (user_id, exam_code, grading, domain_id, no_of_attempts, exam_type ${
+      exam_description ? ", exam_desc" : ""
+    } ${duration_min ? ", duration_min" : ""} ${
+      scheduled_date ? ", scheduled_date" : ""
+    }, title) VALUES (?, ?, ?, ?, ?, ? ${duration_min ? ", ?" : ""} ${
+      scheduled_date ? ", ?" : ""
+    } ${
+      exam_description ? ", ?" : ""
+    } , ?)`;
     const exam_code = generateExamCode(user_id);
     const examData = [
       user_id,
       exam_code,
       grading,
+      domain,
+      no_of_attempts,
+      exam_type,
+      ...(exam_description ? [exam_description] : []),
       ...(duration_min ? [duration_min] : []),
       ...(scheduled_date ? [datetime] : []),
       exam_title,
     ];
     const [examResult] = await connection.query(insertExam, examData);
     const exam_id = examResult.insertId;
+
+    if (exam_type === "public-exam") {
+      if (!tags || !Array.isArray(tags) || tags.length === 0) {
+        throw new Error("Tags must be provided for public exams");
+      }
+      const existingTagsQuery = `SELECT * FROM tag WHERE tag_name IN (?);`;
+      const [existingTagsRows] = await connection.query(existingTagsQuery, [
+        tags,
+      ]);
+      const existingTagNames = existingTagsRows.map((row) => row.tag_name);
+
+      const newTags = tags.filter((tag) => !existingTagNames.includes(tag));
+      const updatedTags = existingTagsRows;
+      for (const tag of newTags) {
+        const insertTagQuery = `INSERT INTO tag (tag_name) VALUES (?);`;
+        const [insertTagResult] = await connection.query(insertTagQuery, [tag]);
+        updatedTags.push({ id: insertTagResult.insertId, tag_name: tag });
+      }
+
+      for (const tag of updatedTags) {
+        const insertExamTagQuery = "INSERT INTO exam_tag VALUES (?, ?)";
+        await connection.query(insertExamTagQuery, [exam_id, tag.id]);
+      }
+    }
+
     for (const question of questions) {
       const insertQuestion = `INSERT INTO question (exam_id, title ${
         grading !== "no-grading" ? ", marks" : ""
+      }, question_type) VALUES (? ${
+        grading !== "no-grading" ? ", ?" : ""
+      }, ?, ?);`;
       }, question_type) VALUES (? ${
         grading !== "no-grading" ? ", ?" : ""
       }, ?, ?);`;
