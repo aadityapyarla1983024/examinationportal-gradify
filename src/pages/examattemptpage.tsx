@@ -70,17 +70,18 @@ export default function ExamAttemptPage() {
   const navigate = useNavigate();
   const [attempt, setAttempt] = useState(null);
   const { protocol, localIp } = useContext(UserContext);
-  const [answers, setAnswers] = useState(
-    (() => {
-      try {
-        const storedAnswers = localStorage.getItem("attempt");
-        return storedAnswers ? JSON.parse(`${storedAnswers}`) : [];
-      } catch (error) {
-        console.error("Error parsing stored answers:", error);
-        return [];
-      }
-    })()
-  );
+  const [answers, setAnswers] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("attempt") || "[]");
+      return stored.map((a) => ({
+        answeredOptions: [],
+        textAnswer: "",
+        ...a,
+      }));
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     setExamLoading(true);
@@ -146,13 +147,6 @@ export default function ExamAttemptPage() {
       navigate("/dashboard/enter-exam");
     }
   };
-
-  useEffect(() => {
-    const timerId = setTimeout(() => {
-      localStorage.setItem("attempt", JSON.stringify(answers));
-    }, 1000);
-    return () => clearTimeout(timerId);
-  }, [answers]);
 
   const submitExam = () => {
     const reqBody = {
@@ -262,32 +256,71 @@ export default function ExamAttemptPage() {
     });
   };
 
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      localStorage.setItem("attempt", JSON.stringify(answers));
+    }, 1000);
+    return () => clearTimeout(timerId);
+  }, [answers]);
+
   if (!examLoading) {
     return (
       <>
-        <Timer
-          duration_min={exam.duration_min}
-          autoSubmit={submitExam}
-          started_at={attempt.started_at}
-        />
+        {exam.duration_min && (
+          <Timer
+            duration_min={exam.duration_min}
+            autoSubmit={submitExam}
+            started_at={attempt.started_at}
+          />
+        )}
+
         <div className="w-full lg:w-[70%] mx-auto">
           <div className="flex flex-row w-full">
             <main className="flex-grow p-4">
               <div className="px-5 my-13">
                 <Card>
-                  <CardHeader className="flex flex-row justify-between">
-                    <div className="flex flex-col gap-5">
-                      <CardTitle>Exam Title: {exam.title}</CardTitle>
-                      {exam.duration_min != null && (
-                        <CardTitle>Duration: {exam.duration_min} min</CardTitle>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-5">
-                      {exam.grading != "no-grading" && (
-                        <CardTitle>Total Marks: {exam.total_marks}</CardTitle>
-                      )}
-                      <CardTitle>Created By: {exam.created_by}</CardTitle>
-                    </div>
+                  <CardHeader className="grid grid-cols-2 gap-5 w-full">
+                    <CardTitle className="">
+                      Exam Title {": "}
+                      <span className="font-medium">{exam.title}</span>
+                    </CardTitle>
+
+                    <CardTitle className="ml-auto">
+                      Created By {": "}
+                      <span className="font-medium">{exam.created_by}</span>
+                    </CardTitle>
+                    <CardTitle>
+                      Domain {": "}
+                      <span className="font-medium">{exam.domain_name}</span>
+                    </CardTitle>
+                    <CardTitle className="ml-auto">
+                      Field  {": "}
+                      <span className="font-medium">{exam.field_name}</span>
+                    </CardTitle>
+                    <CardTitle>
+                      Total Questions {": "}
+                      <span className="font-medium">{exam.question_count}</span>
+                    </CardTitle>
+
+                    <CardTitle className="ml-auto font-semibold">
+                      {(() => {
+                        let split = String(exam.exam_type).split("-", 2);
+                        split = split.map(
+                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                        );
+                        return `${split[0]} ${split[1]}`;
+                      })()}
+                    </CardTitle>
+                    {exam.evaluation != "no" && (
+                      <CardTitle>
+                        Total Marks: <span>{exam.total_marks}</span>
+                      </CardTitle>
+                    )}
+                    {exam.duration_min != null && (
+                      <CardTitle className="ml-auto">
+                        Duration: {exam.duration_min} min
+                      </CardTitle>
+                    )}
                   </CardHeader>
                 </Card>
               </div>
@@ -314,7 +347,7 @@ export default function ExamAttemptPage() {
                           {"Q" + questionNumber + ". " + question.title}
                         </CardTitle>
                         <CardAction>
-                          {exam.grading != "no-grading" && (
+                          {exam.evaluation != "no" && (
                             <h3 className="font-bold ">{question.marks}M</h3>
                           )}
                         </CardAction>
@@ -324,6 +357,7 @@ export default function ExamAttemptPage() {
                           <TextareaDebounce
                             debounceFunc={textAnswerChange}
                             questionId={question.id}
+                            value={answer}
                             cols={4}
                             placeholder="Answer in descriptive form"
                           />
@@ -361,6 +395,3 @@ export default function ExamAttemptPage() {
     );
   }
 }
-
-
-  

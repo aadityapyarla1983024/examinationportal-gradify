@@ -1,113 +1,168 @@
 //@ts-nocheck
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CopyButton } from "@/components/ui/shadcn-io/copy-button";
-import { CopyIcon } from "lucide-react";
+import { useContext, useEffect, useState } from "react";
+import { UserContext } from "@/App";
+import axios from "axios";
+import { toast } from "react-toastify";
+
 export default function MyExamsPage() {
-  const examsCreated = [
-    {
-      title: "DSA lab exam UG2025 Batch",
-      created_at: "2025-10-12 17:50:21",
-      scheduled_at: "2025-10-15 09:00:00",
-      exam_code: 12312,
-      total: 300,
-      duration: 90,
-      highest: 299,
-      least: 50,
-      average: 255,
-    },
-    {
-      title: "JAVA lab exam UG2025 Batch",
-      created_at: "2025-12-12 17:50:21",
-      scheduled_at: "2025-20-15 09:00:00",
-      exam_code: 12112,
-      total: 300,
-      duration: 70,
-      highest: 289,
-      least: 70,
-      average: 295,
-    },
-  ];
-  const examAttempted = [
-    {
-      title: "DSA lab exam UG2025 Batch",
-      submitted_at: "2025-10-12 17:50:21",
-      scheduled_at: "2025-10-15 09:00:00",
-      exam_code: 12312,
-      total: 300,
-      marks: 255,
-      score: 98,
-      duration: 90,
-      highest: 299,
-      average: 255,
-      attempt_no: 2,
-    },
-    {
-      title: "JAVA lab exam UG2025 Batch",
-      submitted_at: "2025-12-12 17:50:21",
-      scheduled_at: "2025-20-15 09:00:00",
-      exam_code: 12112,
-      total: 300,
-      marks: 255,
-      score: 89,
-      duration: 70,
-      highest: 289,
-      average: 295,
-      attempt_no: 5,
-    },
-  ];
+  const { protocol, user, localIp } = useContext(UserContext);
+  const [examsCreated, setExamsCreated] = useState([]);
+  const [examsAttempted, setExamsAttempted] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getExams = `${protocol}://${localIp}:3000/api/myexams/short/get-exams`;
+    const fetchUserExamStats = async () => {
+      try {
+        const res = await axios.post(
+          getExams,
+          {},
+          {
+            headers: {
+              ["x-auth-token"]: localStorage.getItem("token"),
+            },
+          }
+        );
+        setExamsCreated(res.data.created);
+        setExamsAttempted(res.data.attempts);
+        console.log(res.data);
+        setLoading(false);
+      } catch (error) {
+        if (error.response) {
+          toast.error(error.response.data.message);
+          console.log(error.response.data.error);
+        } else {
+          toast.error("Something went wrong while fetching your exam history");
+        }
+      }
+    };
+    fetchUserExamStats();
+  }, []);
+
   return (
     <>
-      <Tabs defaultValue="exams-created" className="w-full">
+      <Tabs
+        defaultValue="exams-created"
+        className="w-full flex flex-col h-screen overflow-hidden"
+      >
         <TabsList className="grid w-[90%] grid-cols-2 mx-auto mt-8 sm:w-[75%] md:w-[60%] lg:w-[50%]">
           <TabsTrigger value="exams-created">Exams Created</TabsTrigger>
           <TabsTrigger value="exams-attempted">Exams Attempted</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="exams-created">
-          <div className="p-4 md:p-8 h-full">
-            <ScrollArea className="h-full w-full rounded-md border p-5">
+        {/* ======================== EXAMS CREATED ======================== */}
+        <TabsContent value="exams-created" className="flex flex-col flex-1 ">
+          <div className="p-4 md:p-8 flex flex-col flex-1 overflow-hidden">
+            <ScrollArea className="w-full h-[85vh] rounded-md border p-5">
               {examsCreated.length != 0 &&
+                !loading &&
                 examsCreated.map((exam) => {
                   return (
                     <Card className="my-5" key={exam.exam_code}>
                       <CardHeader>
                         <CardTitle>{exam.title}</CardTitle>
+                        <CardDescription>
+                          Attempts :{" "}
+                          {(() => {
+                            if (exam.no_of_attempts === -1) {
+                              return "Unlimited";
+                            }
+                            return `${exam.no_of_attempts}`;
+                          })()}
+                          {" | "}
+                          {(() => {
+                            let split = exam.exam_type.split("-", 2);
+                            split = split.map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            );
+                            return `${split[0]} ${split[1]}`;
+                          })()}
+                          {" | "}
+                          {exam.field_name}
+                          {" | "}
+                          {exam.domain_name}
+                        </CardDescription>
                       </CardHeader>
+
                       <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-15">
-                          <div className="flex flex-col gap-2 lg:w-max">
-                            <h2>Schedueld On</h2>
-                            <h1>{exam.scheduled_at}</h1>
-                          </div>
                           <div className="flex flex-col gap-2">
                             <h2>Duration</h2>
-                            <h1>{exam.duration} Min</h1>
+                            <h1>
+                              {exam.duration_min === null
+                                ? "N/A"
+                                : `${Number(exam.duration_min).toFixed(1)} min`}
+                            </h1>
                           </div>
+
                           <div className="flex flex-col gap-2">
                             <h2>Highest Marks</h2>
                             <h1>
-                              {exam.highest} / {exam.total}
+                              {exam.total_marks === 0
+                                ? `Ungraded`
+                                : exam.max
+                                ? `${Number(exam.max).toFixed(1)} / ${Number(
+                                    exam.total_marks
+                                  ).toFixed(1)}`
+                                : "N/A"}
                             </h1>
                           </div>
+
                           <div className="flex flex-col gap-2">
                             <h2>Average</h2>
                             <h1>
-                              {exam.average} / {exam.total}
+                              {exam.total_marks === 0
+                                ? `Ungraded`
+                                : exam.avg
+                                ? `${Number(exam.avg).toFixed(1)} / ${Number(
+                                    exam.total_marks
+                                  ).toFixed(1)}`
+                                : "N/A"}
                             </h1>
                           </div>
+
                           <div className="flex flex-col gap-2">
                             <h2>Least Marks</h2>
                             <h1>
-                              {exam.least} / {exam.total}
+                              {exam.total_marks === 0
+                                ? `Ungraded`
+                                : exam.min
+                                ? `${Number(exam.min).toFixed(1)} / ${Number(
+                                    exam.total_marks
+                                  ).toFixed(1)}`
+                                : "N/A"}
                             </h1>
                           </div>
+
+                          <div className="flex flex-col gap-2 lg:w-max">
+                            <h2>Scheduled On</h2>
+                            <h1>
+                              {exam.scheduled_on
+                                ? (() => {
+                                    const scheduled_on = new Date(
+                                      exam.scheduled_on
+                                    );
+                                    return `${scheduled_on.toLocaleDateString()} ${scheduled_on.toLocaleTimeString()}`;
+                                  })()
+                                : "N/A"}
+                            </h1>
+                          </div>
+
                           <div className="flex flex-col gap-2 ml-auto">
-                            <Link to={"/dashboard/examinfo"}>
+                            <Link to={`/dashboard/examinfo/${exam.exam_code}`}>
                               <Button className="w-full" variant={"outline"}>
                                 View
                               </Button>
@@ -122,51 +177,129 @@ export default function MyExamsPage() {
                     </Card>
                   );
                 })}
-              {examsCreated.length === 0 && <h1>No exams created yet</h1>}
+              {examsCreated.length === 0 && (
+                <h1 className="p-4">No Exam created</h1>
+              )}
             </ScrollArea>
           </div>
         </TabsContent>
 
-        <TabsContent value="exams-attempted">
-          <div className="p-4 md:p-8 h-full">
-            <ScrollArea className="w-full h-full rounded-md border p-5">
-              {examAttempted.length !== 0 &&
-                examAttempted.map((exam) => {
+        {/* ======================== EXAMS ATTEMPTED ======================== */}
+        <TabsContent
+          value="exams-attempted"
+          className="flex flex-col flex-1 overflow-hidden"
+        >
+          <div className="flex flex-col flex-1 overflow-hidden p-4 md:p-8">
+            <ScrollArea className="h-[85vh] w-full rounded-md border p-5">
+              {examsAttempted.length !== 0 &&
+                !loading &&
+                examsAttempted.map((exam) => {
                   return (
                     <Card key={exam.exam_code} className="my-5">
                       <CardHeader>
-                        <CardTitle>{exam.title}</CardTitle>
+                        <CardTitle className="w-fit">{exam.title}</CardTitle>
+                        <CardDescription>
+                          {`Attempt No: ${exam.attempt_number}`}
+                          {" | "}
+                          {(() => {
+                            let split = exam.exam_type.split("-", 2);
+                            split = split.map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            );
+                            return `${split[0]} ${split[1]}`;
+                          })()}
+                          {" | "}
+                          {exam.field_name}
+                          {" | "}
+                          {exam.domain_name}
+                        </CardDescription>
                       </CardHeader>
+
                       <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-15">
-                          <div className="flex flex-col gap-2 lg:w-max">
-                            <h2>Submitted At</h2>
-                            <h1>{exam.submitted_at}</h1>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-auto">
+                          <div className="flex flex-col gap-2">
+                            <h2>Duration</h2>
+                            <h1>
+                              {exam.duration_min === null
+                                ? "N/A"
+                                : `${Number(exam.duration_min).toFixed(1)} min`}
+                            </h1>
                           </div>
+
                           <div className="flex flex-col gap-2">
                             <h2>Marks</h2>
                             <h1>
-                              {exam.marks} / {exam.total}
+                              {exam.evaluation === "no"
+                                ? `Ungraded`
+                                : exam.evaluation === "manual" &&
+                                  exam.awarded_marks === null
+                                ? "Pending"
+                                : `${Number(exam.awarded_marks).toFixed(
+                                    1
+                                  )} / ${Number(exam.total_marks).toFixed(1)}`}
                             </h1>
                           </div>
+
                           <div className="flex flex-col gap-2">
                             <h2>Score</h2>
-                            <h1>{exam.score}%</h1>
+                            <h1>
+                              {exam.evaluation === "no"
+                                ? `Ungraded`
+                                : exam.evaluation === "manual" &&
+                                  exam.awarded_marks === null
+                                ? "Pending"
+                                : `${(
+                                    (exam.awarded_marks / exam.total_marks) *
+                                    100
+                                  ).toFixed(1)}%`}
+                            </h1>
                           </div>
+
                           <div className="flex flex-col gap-2">
                             <h2>Highest Marks</h2>
                             <h1>
-                              {exam.highest} / {exam.total}
+                              {exam.evaluation === "no"
+                                ? `Ungraded`
+                                : exam.evaluation === "manual" &&
+                                  exam.awarded_marks === null
+                                ? "Pending"
+                                : `${Number(exam.max).toFixed(1)} / ${Number(
+                                    exam.total_marks
+                                  ).toFixed(1)}`}
                             </h1>
                           </div>
+
                           <div className="flex flex-col gap-2">
                             <h2>Average</h2>
                             <h1>
-                              {exam.average} / {exam.total}
+                              {exam.evaluation === "no"
+                                ? `Ungraded`
+                                : exam.evaluation === "manual" &&
+                                  exam.awarded_marks === null
+                                ? "Pending"
+                                : `${Number(exam.avg).toFixed(1)} / ${Number(
+                                    exam.total_marks
+                                  ).toFixed(1)}`}
                             </h1>
                           </div>
+
+                          <div className="flex flex-col gap-2 lg:w-max">
+                            <h2>Submitted At</h2>
+                            <h1>
+                              {(() => {
+                                const submitted_at = new Date(
+                                  exam.submitted_at
+                                );
+                                return `${submitted_at.toLocaleDateString()} ${submitted_at.toLocaleTimeString()}`;
+                              })()}
+                            </h1>
+                          </div>
+
                           <div className="flex flex-col gap-2 lg:ml-auto">
-                            <Link to={"/dashboard/viewattempt"}>
+                            <Link
+                              to={`/dashboard/viewattempt/${exam.exam_code}/${exam.id}`}
+                            >
                               <Button className="w-full" variant={"outline"}>
                                 View
                               </Button>
@@ -181,7 +314,9 @@ export default function MyExamsPage() {
                     </Card>
                   );
                 })}
-              {examAttempted.length === 0 && <h1 className="p-4">No Exams Attempted</h1>}
+              {examsAttempted.length === 0 && (
+                <h1 className="p-4">No Exams Attempted</h1>
+              )}
             </ScrollArea>
           </div>
         </TabsContent>

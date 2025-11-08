@@ -19,9 +19,10 @@ function TextareaDebounce({
   className,
   debounceFunc,
   questionId,
+  value,
   ...props
 }: React.ComponentProps<"textarea">) {
-  const [state, setState] = React.useState("");
+  const [state, setState] = React.useState(value);
   return (
     <textarea
       data-slot="textarea"

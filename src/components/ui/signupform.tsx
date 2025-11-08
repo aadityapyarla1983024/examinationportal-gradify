@@ -7,7 +7,6 @@ import axios from "axios";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -16,7 +15,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "./card";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "@/App";
 export default function SignUpForm() {
@@ -31,7 +36,7 @@ export default function SignUpForm() {
   });
 
   const navigate = useNavigate();
-  const { user, setUser, localIp, protocol } = React.useContext(UserContext);
+  const { setUser, localIp, protocol } = React.useContext(UserContext);
 
   const onSubmit = (data) => {
     console.log(data);
@@ -48,6 +53,7 @@ export default function SignUpForm() {
           token: res.headers["x-auth-token"],
           loggedin: true,
         });
+        localStorage.setItem("token", res.headers["x-auth-token"]);
         navigate("/dashboard");
       })
       .catch((err) => {
@@ -70,7 +76,9 @@ export default function SignUpForm() {
       <Form {...form}>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome</CardTitle>
-          <CardDescription>Signup with your Apple or Google account</CardDescription>
+          <CardDescription>
+            Signup with your Apple or Google account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-5 mb-10">
@@ -95,7 +103,10 @@ export default function SignUpForm() {
               name="first_name"
               rules={{
                 required: "First name is required",
-                minLength: { value: 2, message: "First name must be at least 2 characters" },
+                minLength: {
+                  value: 2,
+                  message: "First name must be at least 2 characters",
+                },
               }}
               render={({ field }) => (
                 <FormItem>
@@ -112,7 +123,10 @@ export default function SignUpForm() {
               name="last_name"
               rules={{
                 required: "Last name is required",
-                minLength: { value: 2, message: "Last name must be at least 2 characters" },
+                minLength: {
+                  value: 2,
+                  message: "Last name must be at least 2 characters",
+                },
               }}
               render={({ field }) => (
                 <FormItem>
@@ -151,7 +165,10 @@ export default function SignUpForm() {
               name="password"
               rules={{
                 required: "Password is required",
-                minLength: { value: 8, message: "Password must be at least 6 characters" },
+                minLength: {
+                  value: 8,
+                  message: "Password must be at least 6 characters",
+                },
               }}
               render={({ field }) => (
                 <FormItem>
@@ -169,7 +186,8 @@ export default function SignUpForm() {
               rules={{
                 required: "Confirm password is required",
                 validate: (value) =>
-                  value === form.getValues("password") || "Passwords do not match",
+                  value === form.getValues("password") ||
+                  "Passwords do not match",
               }}
               render={({ field }) => (
                 <FormItem>
@@ -186,7 +204,8 @@ export default function SignUpForm() {
               Sign Up
             </Button>
             <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-              By clicking continue, you agree to our <a href="#">Terms of Service</a> and{" "}
+              By clicking continue, you agree to our{" "}
+              <a href="#">Terms of Service</a> and{" "}
               <a href="#">Privacy Policy</a>.
             </div>
           </form>

@@ -19,8 +19,8 @@ export default function EnterExamPage() {
   return (
     <Card className=" mx-auto my-auto space-y-3">
       <CardHeader>
-        <CardTitle>Enter Exam 6-Digit Code</CardTitle>
-        <CardDescription>Lorem ipsum dolor sit amet consectetur adipisicing</CardDescription>
+        <CardTitle>Enter 12-Digit Exam Code</CardTitle>
+        <CardDescription>Enter the shared unique exam code to start the an attempt</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <InputOTP minLength={12} value={code} onChange={(value) => setCode(value)} maxLength={12} pattern={REGEXP_ONLY_DIGITS}>
