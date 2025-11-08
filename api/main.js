@@ -10,6 +10,12 @@ import exam from "./routes/exam.js";
 import https from "https";
 import http from "http";
 import fs from "fs";
+import attempt from "./routes/attempt.js";
+import myexams from "./routes/myexams.js";
+import examinfo from "./routes/examinfo.js";
+import pub from "./routes/publicexam.js";
+import evaluate from "./routes/evaluate.js";
+import stats from "./routes/stats.js";
 
 const app = express();
 
@@ -27,13 +33,21 @@ app.use(
 app.use("/api/auth", auth);
 app.use("/api/profile", profile);
 app.use("/api/exam", exam);
-
+app.use("/api/attempt", attempt);
+app.use("/api/myexams", myexams);
+app.use("/api/examinfo", examinfo);
+app.use("/api/public-exam", pub);
+app.use("/api/evaluate", evaluate);
+app.use("/api/stats", stats);
 const PORT = config.server.api.port;
 const HOST = config.server.api.host;
 
 const startServer = () => {
   try {
-    if (fs.existsSync(config.server.api.ssl.key) && fs.existsSync(config.server.api.ssl.cert)) {
+    if (
+      fs.existsSync(config.server.api.ssl.key) &&
+      fs.existsSync(config.server.api.ssl.cert)
+    ) {
       const sslOptions = {
         key: config.server.api.ssl.key,
         cert: config.server.api.ssl.cert,

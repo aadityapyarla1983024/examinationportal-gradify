@@ -5,6 +5,7 @@ import { constants } from "../../config/constants.js";
 import generateExamCode from "../utilities/examcodegenerator.js";
 import * as z from "zod";
 import { get } from "http";
+import getExam from "../middleware/getexam.middleware.js";
 const app = express();
 const exam = app.use(express.Router());
 
@@ -29,8 +30,9 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
     duration_min,
     scheduled_date,
     questions,
-    grading,
+    evaluation,
     exam_type,
+    level,
     exam_description,
     no_of_attempts,
     tags,
@@ -45,8 +47,9 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
     });
   }
 
-  const date = new Date(scheduled_date);
-  const datetime = `${date.getFullYear()}-${date.getMonth()}-${date.getDay()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+  const datetime = scheduled_date
+    ? new Date(scheduled_date).toISOString().slice(0, 19).replace("T", " ")
+    : null;
   const { user_id } = req;
   if (!questions)
     return res
@@ -56,24 +59,19 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    const insertExam = `INSERT INTO exam (user_id, exam_code, grading, domain_id, no_of_attempts, exam_type ${
-      exam_description ? ", exam_desc" : ""
-    } ${duration_min ? ", duration_min" : ""} ${
-      scheduled_date ? ", scheduled_date" : ""
-    }, title) VALUES (?, ?, ?, ?, ?, ? ${duration_min ? ", ?" : ""} ${
-      scheduled_date ? ", ?" : ""
-    } ${exam_description ? ", ?" : ""} , ?)`;
+    const insertExam = `INSERT INTO exam (user_id, exam_code, evaluation, domain_id, no_of_attempts, restriction_level, exam_type, exam_desc, duration_min, scheduled_date, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const exam_code = generateExamCode(user_id);
     const examData = [
       user_id,
       exam_code,
-      grading,
+      evaluation,
       domain,
       no_of_attempts,
+      level,
       exam_type,
-      ...(exam_description ? [exam_description] : []),
-      ...(duration_min ? [duration_min] : []),
-      ...(scheduled_date ? [datetime] : []),
+      exam_description ? exam_description : null,
+      duration_min ? duration_min : null,
+      scheduled_date ? datetime : null,
       exam_title,
     ];
     const [examResult] = await connection.query(insertExam, examData);
@@ -105,14 +103,12 @@ exam.post("/new-exam", verfiyToken, async (req, res) => {
 
     for (const question of questions) {
       const insertQuestion = `INSERT INTO question (exam_id, title ${
-        grading !== "no-grading" ? ", marks" : ""
-      }, question_type) VALUES (? ${
-        grading !== "no-grading" ? ", ?" : ""
-      }, ?, ?);`;
+        evaluation !== "no" ? ", marks" : ""
+      }, question_type) VALUES (? ${evaluation !== "no" ? ", ?" : ""}, ?, ?);`;
       const [questionResult] = await connection.query(insertQuestion, [
         exam_id,
         question.title,
-        ...(grading !== "no-grading" ? [question.marks] : []),
+        ...(evaluation !== "no" ? [question.marks] : []),
         QUESTION_TYPES[question.questionType],
       ]);
       const question_id = questionResult.insertId;
@@ -174,6 +170,29 @@ exam.get("/get-fields", verfiyToken, async (req, res) => {
     const getFieldQuery = "SELECT * FROM field";
     const [results] = await db.query(getFieldQuery);
     return res.send(results);
+  } catch (error) {
+    return res
+      .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .send({ error, message: "Internal Server Error" });
+  }
+});
+
+exam.post("/get-exam", verfiyToken, getExam, (req, res) => {
+  return res.send(req.exam);
+});
+
+exam.get("/public-exams", verfiyToken, async (req, res) => {
+  try {
+    const getPublicExams = `
+    SELECT exam_code, evaluation, title, exam_desc, domain_name, field_name, 
+    no_of_attempts, duration_min, scheduled_date, e.created_at, first_name, last_name 
+    FROM exam AS e 
+    JOIN user ON user_id = user.id
+    JOIN domain AS d ON domain_id = d.id 
+    JOIN field ON field_id=field.id WHERE exam_type='public-exam'
+    `;
+    const [exams] = await db.query(getPublicExams);
+    return res.send(exams);
   } catch (error) {
     return res
       .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)

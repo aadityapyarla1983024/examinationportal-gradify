@@ -11,7 +11,7 @@ export default function verfiyToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, config.jwt.privateKey);
     req.user_id = decoded.id;
-    next();
+    return next();
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       return res.status(constants.HTTP_STATUS.UNAUTHORIZED).send({

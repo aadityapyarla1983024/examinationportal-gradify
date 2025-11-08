@@ -71,7 +71,7 @@ export default function App() {
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/dashboard/*" element={<DashBoardRouter />} />
-            <Route path="/examattempt" element={<ExamAttemptPage />} />
+            <Route path="/examattempt/:excode" element={<ExamAttemptPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:jwt" element={<ResetPasswordPage />} />
           </Routes>

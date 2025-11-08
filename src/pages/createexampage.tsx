@@ -1,4 +1,18 @@
 // @ts-nocheck
+import {
+  DialogStack,
+  DialogStackBody,
+  DialogStackContent,
+  DialogStackDescription,
+  DialogStackFooter,
+  DialogStackHeader,
+  DialogStackNext,
+  DialogStackOverlay,
+  DialogStackPrevious,
+  DialogStackTitle,
+  DialogStackTrigger,
+} from "@/components/ui/shadcn-io/dialog-stack";
+
 import { Button } from "@/components/ui/button";
 import { ToastContainer, toast } from "react-toastify";
 import {
@@ -32,11 +46,14 @@ import { DateTimePicker24h } from "@/components/datetimepicker";
 import axios from "axios";
 import { UserContext } from "@/App";
 import { useNavigate } from "react-router-dom";
+import { NotebookPen, CircleArrowRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogClose,
   DialogFooter,
+  DialogTrigger,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -68,8 +85,8 @@ function CreateExamPage() {
   const [attemptType, setAttemptType] = useState("");
   const [noOfAttempts, setNoOfAttempts] = useState(undefined);
 
-  const [grading, setGrading] = useState("");
-  const [autoGradingTotalMarks, setAutoGradingTotalMarks] = useState(undefined);
+  const [evaluation, setEval] = useState("");
+  const [autoMarkingMarks, setautoMarkingMarks] = useState(undefined);
 
   const [loading, setLoading] = useState(false);
   const [examDescription, setExamDescription] = useState("");
@@ -82,6 +99,9 @@ function CreateExamPage() {
 
   const [selectedField, setSelectedField] = useState(undefined);
   const [selectedDomain, setSelectedDomain] = useState(undefined);
+
+  const [level, setLevel] = useState("");
+  const [marking, setMarking] = useState("");
 
   const [dialog, setDialog] = useState({
     open: false,
@@ -140,12 +160,20 @@ function CreateExamPage() {
       toast.error("Exam title is required");
       return;
     }
-    if (grading === "") {
-      toast.error("Grading Method is required");
+    if (level === "") {
+      toast.error("Exam restriction level is required");
       return;
     }
-    if (grading === "" && !autoGradingTotalMarks) {
-      toast.error("Grading Method is required");
+    if (evaluation === "") {
+      toast.error("Evaluation Method is required");
+      return;
+    }
+    if (marking === "") {
+      toast.error("Marking type is required");
+      return;
+    }
+    if (marking === "" && !autoMarkingMarks) {
+      toast.error("Marking without total exam marks cannot be permitted");
       return;
     }
     if (questions.length === 0) {
@@ -183,7 +211,9 @@ function CreateExamPage() {
     const exam = {
       exam_title: examTitle,
       duration_min: duration,
-      grading,
+      evaluation,
+      level,
+      marking,
       scheduled_date: date?.toISOString(),
       domain: selectedDomain,
       exam_type: examType,
@@ -197,15 +227,15 @@ function CreateExamPage() {
       })(),
       exam_description: examDescription,
       questions: (() => {
-        if (grading === "no-grading") {
+        if (marking === "no") {
           return questions.map(({ edit, marks, ...rest }) => rest);
-        } else if (grading === "auto-grading") {
+        } else if (marking === "auto") {
           const resultant = questions.map((question) => ({
             ...question,
-            marks: autoGradingTotalMarks / questions.length,
+            marks: autoMarkingMarks / questions.length,
           }));
           return resultant.map(({ edit, ...rest }) => rest);
-        } else if (grading === "manual-grading") {
+        } else if (marking === "manual") {
           return questions.map(({ edit, ...rest }) => rest);
         }
       })(),
@@ -330,7 +360,7 @@ function CreateExamPage() {
     const { title, questionType, options, correctOptions, marks } = newQuestion;
     const isChoiceQuestion =
       questionType === "single-choice" || questionType === "multi-choice";
-    if (grading === "manual-grading" && (marks === undefined || isNaN(marks))) {
+    if (marking === "manual" && (marks === undefined || isNaN(marks))) {
       toast.error("Please provide the marks for the new question");
       return false;
     }
@@ -525,7 +555,7 @@ function CreateExamPage() {
   const handleQuestionMarkChangeUpdate = (value, questionId) => {
     SetQuestions((prev) => {
       return prev.map((question) => {
-        if (questionId === questionId.id) {
+        if (questionId === question.id) {
           return {
             ...question,
             marks: value,
@@ -545,20 +575,284 @@ function CreateExamPage() {
   if (!loading) {
     return (
       <div className="form-container w-full p-10 md:p-24">
-        <div className="grid grid-cols-1 md:grid-cols-4 items-center w-fit gap-5">
-          <Label htmlFor="exam_title" className=" md:col-start-1">
-            Exam Title
-          </Label>
-          <Input
-            id="exam_title"
-            value={examTitle}
-            onChange={(e) => setExamTitle(e.target.value)}
-            type="text"
-            placeholder="Enter Exam Title"
-            required
-            name="exam_title"
-            className="md:col-start-2 md:col-span-2"
-          />
+        <DialogStack defaultOpen={true}>
+          <DialogStackTrigger asChild>
+            <Button className="hidden" variant="outline">
+              Show me
+            </Button>
+          </DialogStackTrigger>
+          <DialogStackOverlay />
+          <DialogStackBody>
+            <DialogStackContent>
+              <DialogStackHeader>
+                <DialogStackTitle>Let's create an exam</DialogStackTitle>
+                <DialogStackDescription>
+                  <div>
+                    Give us some basic details of the exam so that we could
+                    process the attempts accordingly
+                  </div>
+                  <div className="my-10 mx-10 flex flex-col gap-5">
+                    <Input
+                      id="exam_title"
+                      value={examTitle}
+                      onChange={(e) => setExamTitle(e.target.value)}
+                      type="text"
+                      placeholder="Enter Exam Title"
+                      required
+                      name="exam_title"
+                      className="block"
+                    />
+                    <div className="flex flex-row justify-between flex-wrap gap-5">
+                      <Select
+                        onValueChange={(value) =>
+                          setSelectedField(parseInt(value))
+                        }
+                        value={selectedField}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Field" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Select a field</SelectLabel>
+                            {fields.map((field) => {
+                              return (
+                                <SelectItem key={field.id} value={field.id}>
+                                  {field.field_name}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        onValueChange={(value) =>
+                          setSelectedDomain(parseInt(value))
+                        }
+                        value={selectedDomain}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Domain" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {selectedField && (
+                              <SelectLabel>Select a domain</SelectLabel>
+                            )}
+                            {!selectedField && (
+                              <SelectLabel className="text-red-500 font-semibold">
+                                Select a field first
+                              </SelectLabel>
+                            )}
+                            {domains.map((domain) => {
+                              if (domain.field_id === selectedField)
+                                return (
+                                  <SelectItem key={domain.id} value={domain.id}>
+                                    {domain.domain_name}
+                                  </SelectItem>
+                                );
+                            })}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-row flex-wrap justify-between gap-5">
+                      <Select
+                        onValueChange={(value) => setExamType(value)}
+                        value={examType}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Exam Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Select exam</SelectLabel>
+                            <SelectItem value="private-exam">
+                              Private Exam
+                            </SelectItem>
+                            <SelectItem value="public-exam">
+                              Public Exam
+                            </SelectItem>
+                            <SelectItem value="personal-exam">
+                              Personal Exam
+                            </SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        onValueChange={(value) => setLevel(value)}
+                        value={level}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Restriction Level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Select Restriction Level</SelectLabel>
+                            <SelectItem value="zero">Zero</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </DialogStackDescription>
+              </DialogStackHeader>
+              <DialogStackFooter className="justify-end">
+                <DialogStackNext asChild>
+                  <Button
+                    disabled={(() => {
+                      if (
+                        !(
+                          selectedDomain ||
+                          selectedField ||
+                          examTitle ||
+                          examType ||
+                          level
+                        )
+                      ) {
+                        return true;
+                      } else {
+                        return false;
+                      }
+                    })()}
+                    variant="default"
+                  >
+                    Next
+                  </Button>
+                </DialogStackNext>
+              </DialogStackFooter>
+            </DialogStackContent>
+            <DialogStackContent>
+              <DialogStackHeader>
+                <DialogStackTitle>
+                  Some more details on the technical part
+                </DialogStackTitle>
+                <DialogStackDescription>
+                  <div>
+                    Kindly please provide addtional details to handle exams
+                    properly{" "}
+                  </div>
+
+                  <div className="my-10 mx-5 grid grid-cols-1 md:grid-cols-2 wrap-normal gap-5">
+                    <Select
+                      onValueChange={(value) => setEval(value)}
+                      value={evaluation}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Evaluation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Select Evaluation</SelectLabel>
+                          <SelectItem value="manual">Manual</SelectItem>
+                          <SelectItem value="auto">Auto</SelectItem>
+                          <SelectItem value="no">No Evaluation</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      onValueChange={(value) => setAttemptType(value)}
+                      value={attemptType}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="No. of Attempts" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Select no of attempts</SelectLabel>
+                          <SelectItem value="limited-attempts">
+                            Limited
+                          </SelectItem>
+                          <SelectItem value="unlimited-attempts">
+                            Unlimited
+                          </SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      onValueChange={(value) => setMarking(value)}
+                      value={marking}
+                      disabled={(() => {
+                        if (evaluation === "no") return true;
+                        return false;
+                      })()}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Marking Scheme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Select Marking Scheme</SelectLabel>
+                          <SelectItem value="auto">Auto</SelectItem>
+                          <SelectItem value="manual">Manual</SelectItem>
+                          <SelectItem value="no">No Marking</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      disabled={(() => {
+                        if (marking != "auto") {
+                          return true;
+                        }
+                        return false;
+                      })()}
+                      className="w-full"
+                      placeholder="Max marks"
+                      value={autoMarkingMarks}
+                      onChange={(e) => setautoMarkingMarks(e.target.value)}
+                      type="number"
+                    />
+                  </div>
+                </DialogStackDescription>
+              </DialogStackHeader>
+              <DialogStackFooter className="justify-between">
+                <DialogStackPrevious asChild>
+                  <Button variant="secondary">Previous</Button>
+                </DialogStackPrevious>
+                <DialogStackNext asChild>
+                  <Button variant="default">Next</Button>
+                </DialogStackNext>
+              </DialogStackFooter>
+            </DialogStackContent>
+            <DialogStackContent>
+              <DialogStackHeader>
+                <DialogStackTitle>
+                  Would you like to schedule or time the exam ?
+                </DialogStackTitle>
+                <DialogStackDescription>
+                  <div>
+                    Provide us the desired date, time and duration of the exam
+                    and we will take care of it
+                  </div>
+                  <div className="max-w-50 mx-auto my-10 mt-10 flex flex-col gap-5">
+                    <DateTimePicker24h
+                      id="date"
+                      className="md:col-start-4"
+                      setParentState={setDate}
+                    />{" "}
+                    <Input
+                      id="duration"
+                      value={duration}
+                      placeholder="Duration in min"
+                      onChange={(e) => setDuration(e.target.valueAsNumber)}
+                      type="number"
+                      name="duration"
+                      className="md:col-start-2"
+                    />
+                  </div>
+                </DialogStackDescription>
+              </DialogStackHeader>
+              <DialogStackFooter className="justify-between">
+                <DialogStackPrevious asChild>
+                  <Button variant="secondary">Previous</Button>
+                </DialogStackPrevious>
+              </DialogStackFooter>
+            </DialogStackContent>
+          </DialogStackBody>
+        </DialogStack>
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-5">
           <Label htmlFor="duration" className="md:col-start-1">
             Duration
           </Label>
@@ -579,27 +873,231 @@ function CreateExamPage() {
             className="md:col-start-4"
             setParentState={setDate}
           />
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                className="md:col-start-5 w-fit mx-auto"
+                variant="outline"
+              >
+                <NotebookPen /> Exam Settings
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-fit">
+              <DialogHeader>
+                <DialogTitle>Exam Settings</DialogTitle>
+                <DialogDescription>
+                  Make changes to your profile here. Click save when you&apos;re
+                  done.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-col-1 my-5 md:grid-cols-2 gap-5 place-items-center place-content-center">
+                <div className="flex gap-3 md:col-start-1">
+                  <Select
+                    onValueChange={(value) => setExamType(value)}
+                    value={examType}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Exam Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Select exam</SelectLabel>
+                        <SelectItem value="private-exam">
+                          Private Exam
+                        </SelectItem>
+                        <SelectItem value="public-exam">Public Exam</SelectItem>
+                        <SelectItem value="personal-exam">
+                          Personal Exam
+                        </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-3 md:col-start-2">
+                  <Select
+                    onValueChange={(value) => setLevel(value)}
+                    value={level}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Restriction Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Select Restriction Level</SelectLabel>
+                        <SelectItem value="zero">Zero</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <Label className="md:col-start-1">Exam Type</Label>
-          <div className="flex gap-3 md:col-start-2">
-            <Select
-              onValueChange={(value) => setExamType(value)}
-              value={examType}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Exam Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Select exam</SelectLabel>
-                  <SelectItem value="private-exam">Private Exam</SelectItem>
-                  <SelectItem value="public-exam">Public Exam</SelectItem>
-                  <SelectItem value="personal-exam">Personal Exam</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+                <div className="flex gap-3 md:col-start-1">
+                  <Select
+                    onValueChange={(value) => setSelectedField(parseInt(value))}
+                    value={selectedField}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Field" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Select a field</SelectLabel>
+                        {fields.map((field) => {
+                          return (
+                            <SelectItem key={field.id} value={field.id}>
+                              {field.field_name}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-3 md:col-start-2">
+                  <Select
+                    onValueChange={(value) =>
+                      setSelectedDomain(parseInt(value))
+                    }
+                    value={selectedDomain}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Domain" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {selectedField && (
+                          <SelectLabel>Select a domain</SelectLabel>
+                        )}
+                        {!selectedField && (
+                          <SelectLabel className="text-red-500 font-semibold">
+                            Select a field first
+                          </SelectLabel>
+                        )}
+                        {domains.map((domain) => {
+                          if (domain.field_id === selectedField)
+                            return (
+                              <SelectItem key={domain.id} value={domain.id}>
+                                {domain.domain_name}
+                              </SelectItem>
+                            );
+                        })}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-3 md:col-start-1">
+                  <Select
+                    onValueChange={(value) => setEval(value)}
+                    value={evaluation}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Evaluation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Select Evaluation</SelectLabel>
+                        <SelectItem value="manual">Manual</SelectItem>
+                        <SelectItem value="auto">Auto</SelectItem>
+                        <SelectItem value="no">No Evaluation</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
 
+                <div className="flex gap-3 md:col-start-1">
+                  <Select
+                    onValueChange={(value) => setAttemptType(value)}
+                    value={attemptType}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="No. of Attempts" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Select no of attempts</SelectLabel>
+                        <SelectItem value="limited-attempts">
+                          Limited
+                        </SelectItem>
+                        <SelectItem value="unlimited-attempts">
+                          Unlimited
+                        </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  className="md:col-start-2 w-[180px]"
+                  type="number"
+                  value={noOfAttempts}
+                  onChange={(e) => setNoOfAttempts(e.target.valueAsNumber)}
+                  placeholder="No. of Attempts"
+                  disabled={(() => {
+                    if (attemptType === "limited-attempts") {
+                      return false;
+                    }
+                    return true;
+                  })()}
+                />
+                <div className="flex gap-3 md:col-start-1">
+                  <Select
+                    onValueChange={(value) => setMarking(value)}
+                    value={marking}
+                    disabled={(() => {
+                      if (evaluation === "no") {
+                        return true;
+                      }
+                      return false;
+                    })()}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Marking Scheme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Select Marking Scheme</SelectLabel>
+                        <SelectItem value="auto">Auto</SelectItem>
+                        <SelectItem value="manual">Manual</SelectItem>
+                        <SelectItem value="no">No Marking</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  placeholder="Max marks"
+                  className="col-start-2 w-[180px]"
+                  value={autoMarkingMarks}
+                  onChange={(e) => setautoMarkingMarks(e.target.value)}
+                  type="number"
+                  disabled={(() => {
+                    if (marking != "auto") {
+                      return true;
+                    }
+                    return false;
+                  })()}
+                />
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit">Save changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Label htmlFor="exam_title" className="md:col-start-1">
+            Exam Title
+          </Label>
+          <Input
+            id="exam_title"
+            value={examTitle}
+            onChange={(e) => setExamTitle(e.target.value)}
+            type="text"
+            placeholder="Enter Exam Title"
+            required
+            name="exam_title"
+            className="md:col-start-2 md:col-span-3"
+          />
           <Label className="md:col-start-1">Exam Description</Label>
           <Textarea
             value={examDescription}
@@ -607,130 +1105,19 @@ function CreateExamPage() {
             className="md:col-start-2 md:col-span-3"
             placeholder="Enter exam description..."
           />
-          <Label className="md:col-start-1">Field</Label>
-          <div className="flex gap-3 md:col-start-2">
-            <Select
-              onValueChange={(value) => setSelectedField(parseInt(value))}
-              value={selectedField}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Field" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Select a field</SelectLabel>
-                  {fields.map((field) => {
-                    return (
-                      <SelectItem key={field.id} value={field.id}>
-                        {field.field_name}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          <Label className="md:col-start-3">Domain</Label>
-          <div className="flex gap-3 md:col-start-4">
-            <Select
-              onValueChange={(value) => setSelectedDomain(parseInt(value))}
-              value={selectedDomain}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Domain" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Select a domain</SelectLabel>
-                  {domains.map((domain) => {
-                    if (domain.field_id === selectedField)
-                      return (
-                        <SelectItem key={domain.id} value={domain.id}>
-                          {domain.domain_name}
-                        </SelectItem>
-                      );
-                  })}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          <Label className="md:col-start-1">Grading Type</Label>
-          <div className="flex gap-3 md:col-start-2">
-            <Select
-              onValueChange={(value) => setGrading(value)}
-              value={grading}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Grading" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Select grading</SelectLabel>
-                  <SelectItem value="manual-grading">Manual Graded</SelectItem>
-                  <SelectItem value="auto-grading">Auto Grading</SelectItem>
-                  <SelectItem value="no-grading">No Grading</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          {grading === "auto-grading" && (
-            <>
-              <Label className="md:col-start-3">Total Marks</Label>
-              <Input
-                placeholder="Max marks for this exam"
-                className="md:col-start-4"
-                value={autoGradingTotalMarks}
-                onChange={(e) => setAutoGradingTotalMarks(e.target.value)}
-                type="number"
-              />
-            </>
-          )}
-          <Label className="md:col-start-1">Attempts</Label>
-          <div className="flex gap-3 md:col-start-2">
-            <Select
-              onValueChange={(value) => setAttemptType(value)}
-              value={attemptType}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="No. of Attempts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Select no of attempts</SelectLabel>
-                  <SelectItem value="limited-attempts">Limited</SelectItem>
-                  <SelectItem value="unlimited-attempts">Unlimited</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          {attemptType === "limited-attempts" && (
-            <>
-              <Label className="md:col-start-3">No of Attempts</Label>
-              <Input
-                className="md:col-start-4"
-                type="number"
-                value={noOfAttempts}
-                onChange={(e) => setNoOfAttempts(e.target.valueAsNumber)}
-                placeholder="No. of Attempts"
-              />
-            </>
-          )}
+          <Label className="md:col-start-1">Exam Description</Label>
 
-          {examType === "public-exam" && (
-            <>
-              <Label className="md:col-start-1">Search Tags</Label>
-              <SearchTag
-                selected={selected}
-                setSelected={setSelected}
-                newTag={newTag}
-                setNewTag={setNewTag}
-                tags={tags}
-                setTags={setTags}
-                className="md:col-start-2"
-              />
-            </>
-          )}
+          <SearchTag
+            className={"md:col-start-2 md:col-span-3"}
+            selected={selected}
+            setSelected={setSelected}
+            newTag={newTag}
+            setNewTag={setNewTag}
+            tags={tags}
+            setTags={setTags}
+          />
         </div>
+
         <ToastContainer />
         {questions.map((question) => {
           if (question.edit !== true) {
@@ -741,14 +1128,17 @@ function CreateExamPage() {
                     {"Q" + question.id + ". " + question.title}
                   </CardTitle>
                   <CardAction>
-                    {grading === "auto-grading" && (
-                      <h3>
-                        {isNaN(autoGradingTotalMarks / questions.length)
+                    {marking === "auto" && (
+                      <h2 className="font-semibold">
+                        {isNaN(autoMarkingMarks / questions.length)
                           ? ""
-                          : autoGradingTotalMarks / questions.length}
-                      </h3>
+                          : autoMarkingMarks / questions.length}
+                        M
+                      </h2>
                     )}
-                    {grading === "manual-grading" && <h3>{question.marks}</h3>}
+                    {marking === "manual" && (
+                      <h2 className="font-semibold">{question.marks}M</h2>
+                    )}
                   </CardAction>
                 </CardHeader>
                 <CardContent>
@@ -825,13 +1215,13 @@ function CreateExamPage() {
                           </SelectGroup>
                         </SelectContent>
                       </Select>
-                      {grading === "manual-grading" && (
+                      {marking === "manual" && (
                         <Input
                           type="number"
                           placeholder="Marks"
                           onChange={(e) =>
                             handleQuestionMarkChangeUpdate(
-                              e.target.value,
+                              parseInt(e.target.value),
                               question.id
                             )
                           }
@@ -943,7 +1333,7 @@ function CreateExamPage() {
                       </SelectGroup>
                     </SelectContent>
                   </Select>
-                  {grading === "manual-grading" && (
+                  {marking === "manual" && (
                     <Input
                       value={newQuestion.marks}
                       onChange={(e) =>
@@ -995,7 +1385,11 @@ function CreateExamPage() {
             <CardFooter>
               {(newQuestion.questionType === "single-choice" ||
                 newQuestion.questionType === "multi-choice") && (
-                <Button type="button" onClick={handleAddOption}>
+                <Button
+                  type="button"
+                  variant={"outline"}
+                  onClick={handleAddOption}
+                >
                   <Plus className="mr-2 h-4 w-4" /> Add Option
                 </Button>
               )}
@@ -1003,12 +1397,13 @@ function CreateExamPage() {
           </Card>
 
           <div className="newquestionbuttoncontainer gap-2 flex justify-end">
-            <Button type="submit">
+            <Button type="submit" variant={"outline"}>
               <Plus />
               Add Question
             </Button>
             <Button type="button" onClick={(e) => handleSubmitExam(e)}>
               Create Exam
+              {/* <CircleArrowRight /> */}
             </Button>
           </div>
         </form>

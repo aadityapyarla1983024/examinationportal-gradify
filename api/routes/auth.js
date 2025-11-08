@@ -14,24 +14,38 @@ const auth = app.use(express.Router());
 auth.post("/signup", async (req, res) => {
   const { first_name, last_name, email, password } = req.body;
   if (!first_name || !last_name || !email || !password) {
-    return res.status(constants.HTTP_STATUS.BAD_REQUEST).send("All fields are required");
+    return res
+      .status(constants.HTTP_STATUS.BAD_REQUEST)
+      .send("All fields are required");
   }
   const hashed = await hash(password, 10);
   const insertQuery =
     "INSERT INTO user (first_name, last_name, email, password) VALUES (?, ?, ?, ?); ";
   try {
-    const [result] = await db.query(insertQuery, [first_name, last_name, email, hashed]);
-
-    const token = jwt.sign({ id: result.insertId, email }, config.jwt.privateKey, {
-      expiresIn: constants.JWT.EXPIRES_IN.LOGIN,
-    });
-    res.status(constants.HTTP_STATUS.CREATED).header({ "x-auth-token": token }).send({
-      user_id: result.insertId,
+    const [result] = await db.query(insertQuery, [
       first_name,
       last_name,
       email,
-      message: "User signed up successfully",
-    });
+      hashed,
+    ]);
+
+    const token = jwt.sign(
+      { id: result.insertId, email },
+      config.jwt.privateKey,
+      {
+        expiresIn: constants.JWT.EXPIRES_IN.LOGIN,
+      }
+    );
+    res
+      .status(constants.HTTP_STATUS.CREATED)
+      .header({ "x-auth-token": token })
+      .send({
+        user_id: result.insertId,
+        first_name,
+        last_name,
+        email,
+        message: "User signed up successfully",
+      });
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
       return res
@@ -67,8 +81,12 @@ auth.post("/reset-password", verfiyToken, async (req, res) => {
 auth.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
   console.log(email);
-  if (!email) return res.status(constants.HTTP_STATUS.BAD_REQUEST).send("Email is required");
-  const searchEmailQuery = "SELECT id, first_name, last_name FROM user WHERE email=?;";
+  if (!email)
+    return res
+      .status(constants.HTTP_STATUS.BAD_REQUEST)
+      .send("Email is required");
+  const searchEmailQuery =
+    "SELECT id, first_name, last_name FROM user WHERE email=?;";
   try {
     const [result] = await db.query(searchEmailQuery, [email]);
     const { id, first_name, last_name } = result[0];
@@ -77,7 +95,10 @@ auth.post("/forgot-password", async (req, res) => {
     });
     const passwordResetLink = `http://${config.server.front.host}:${config.server.front.port}/reset-password/${token}`;
     const fullName = first_name + last_name;
-    await sendEmail(email, passwordResetEmail(passwordResetLink, fullName)).catch(console.error);
+    await sendEmail(
+      email,
+      passwordResetEmail(passwordResetLink, fullName)
+    ).catch(console.error);
     res.send({ message: "Email sent successfully" });
   } catch (error) {
     if (error)
@@ -138,7 +159,9 @@ auth.post("/signin", async (req, res) => {
         message: "Login successfull",
       });
     } else {
-      res.status(constants.HTTP_STATUS.BAD_REQUEST).send({ message: "Wrong password" });
+      res
+        .status(constants.HTTP_STATUS.BAD_REQUEST)
+        .send({ message: "Wrong password" });
     }
   } catch (error) {
     if (error) {
@@ -151,3 +174,4 @@ auth.post("/signin", async (req, res) => {
 });
 
 export default auth;
+  
