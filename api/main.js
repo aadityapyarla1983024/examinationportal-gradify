@@ -1,24 +1,26 @@
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
-import auth from "./routes/auth.js";
 import cors from "cors";
-import config from "../config/dev.js";
-import profile from "./routes/profile.js";
-import { constants } from "../config/constants.js";
-import exam from "./routes/exam.js";
+import fs from "fs";
 import https from "https";
 import http from "http";
-import fs from "fs";
-import attempt from "./routes/attempt.js";
-import myexams from "./routes/myexams.js";
-import examinfo from "./routes/examinfo.js";
-import pub from "./routes/publicexam.js";
-import evaluate from "./routes/evaluate.js";
-import stats from "./routes/stats.js";
+import config from "../config/dev.js";
+
+// === ROUTES ===
+import authRoutes from "./routes/auth.routes.js";
+import profileRoutes from "./routes/profile.routes.js";
+import examRoutes from "./routes/exam.routes.js";
+import attemptRoutes from "./routes/attempt.routes.js";
+import myexamsRoutes from "./routes/myexams.routes.js";
+import examinfoRoutes from "./routes/examinfo.routes.js";
+import pubRoutes from "./routes/publicexam.routes.js";
+import evaluateRoutes from "./routes/evaluate.routes.js";
+import statsRoutes from "./routes/stats.routes.js";
 
 const app = express();
 
+// === GLOBAL MIDDLEWARE ===
 app.use(express.json());
 app.use(helmet());
 app.use(morgan("tiny"));
@@ -30,40 +32,35 @@ app.use(
     exposedHeaders: ["x-auth-token"],
   })
 );
-app.use("/api/auth", auth);
-app.use("/api/profile", profile);
-app.use("/api/exam", exam);
-app.use("/api/attempt", attempt);
-app.use("/api/myexams", myexams);
-app.use("/api/examinfo", examinfo);
-app.use("/api/public-exam", pub);
-app.use("/api/evaluate", evaluate);
-app.use("/api/stats", stats);
-const PORT = config.server.api.port;
-const HOST = config.server.api.host;
+
+// === ROUTE REGISTRATION ===
+app.use("/api/auth", authRoutes);
+app.use("/api/profile", profileRoutes);
+app.use("/api/exam", examRoutes);
+app.use("/api/attempt", attemptRoutes);
+app.use("/api/myexams", myexamsRoutes);
+app.use("/api/examinfo", examinfoRoutes);
+app.use("/api/public-exam", pubRoutes);
+app.use("/api/evaluate", evaluateRoutes);
+app.use("/api/stats", statsRoutes);
+
+// === SERVER CONFIG ===
+const { port: PORT, host: HOST, ssl } = config.server.api;
 
 const startServer = () => {
   try {
-    if (
-      fs.existsSync(config.server.api.ssl.key) &&
-      fs.existsSync(config.server.api.ssl.cert)
-    ) {
-      const sslOptions = {
-        key: config.server.api.ssl.key,
-        cert: config.server.api.ssl.cert,
-      };
-
+    if (fs.existsSync(ssl.key) && fs.existsSync(ssl.cert)) {
+      const sslOptions = { key: ssl.key, cert: ssl.cert };
       https.createServer(sslOptions, app).listen(PORT, HOST, () => {
-        console.log(`Backend running on https://${HOST}:${PORT}`);
+        console.log(`✅ Backend running securely on https://${HOST}:${PORT}`);
       });
     } else {
       throw new Error("SSL certificates not found");
     }
   } catch (error) {
-    console.log("SSL certificates not found, falling back to HTTP");
-
+    console.log("⚠️ SSL not found, falling back to HTTP...");
     http.createServer(app).listen(PORT, HOST, () => {
-      console.log(`Backend running on http://${HOST}:${PORT}`);
+      console.log(`✅ Backend running on http://${HOST}:${PORT}`);
     });
   }
 };

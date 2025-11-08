@@ -1,18 +1,17 @@
-import express from "express";
-import { constants } from "../../config/constants.js";
 import db from "../db.js";
-import verfiyToken from "../middleware/tokenverify.middleware.js";
-import getExam from "../middleware/getexam.middleware.js";
+import { constants } from "../../config/constants.js";
 
-const pub = express.Router();
-
-pub.post("/getinfo", verfiyToken, getExam, async (req, res) => {
+export const getPublicExamInfo = async (req, res) => {
   const { exam } = req;
   const connection = await db.getConnection();
+
   try {
+    // ====== Fetch all attempts for this exam ======
     const getAttempts =
       "SELECT user_id, id, awarded_marks, submitted_at FROM exam_attempt WHERE exam_id=? ORDER BY submitted_at ASC";
     const [attempts] = await connection.query(getAttempts, [exam.id]);
+
+    // ====== Keep only first attempt per user (and evaluated ones) ======
     const firstAttempts = [];
     for (const attempt of attempts) {
       if (
@@ -27,7 +26,8 @@ pub.post("/getinfo", verfiyToken, getExam, async (req, res) => {
         });
       }
     }
-    // now we need to get correct and incorrect answers for each attempt
+
+    // ====== Calculate per-attempt stats ======
     let serial = 0;
     for (const attempt of firstAttempts) {
       attempt.serial = ++serial;
@@ -36,37 +36,50 @@ pub.post("/getinfo", verfiyToken, getExam, async (req, res) => {
       attempt.total_attempted = answers.length;
       attempt.correct = 0;
       attempt.incorrect = 0;
+
+      // ====== Get user details ======
       const getUser = "SELECT * FROM user WHERE id=?";
       const [user] = await connection.query(getUser, [attempt.user_id]);
-      attempt.name = user[0].first_name + " " + user[0].last_name;
+      attempt.name = `${user[0].first_name} ${user[0].last_name}`;
       attempt.email = user[0].email;
+
+      // ====== Correct vs Incorrect count ======
       for (const answer of answers) {
         const [correct] = await connection.query(
-          "SELECT COUNT(*) AS cnt FROM mcq_answer AS m JOIN opt ON m.option_id=opt.id WHERE answer_id=? AND opt.is_correct=TRUE",
+          `SELECT COUNT(*) AS cnt 
+           FROM mcq_answer AS m 
+           JOIN opt ON m.option_id = opt.id 
+           WHERE answer_id = ? AND opt.is_correct = TRUE`,
           [answer.id]
         );
         const [incorrect] = await connection.query(
-          "SELECT COUNT(*) AS cnt FROM mcq_answer AS m JOIN opt ON m.option_id=opt.id WHERE answer_id=? AND opt.is_correct=FALSE",
+          `SELECT COUNT(*) AS cnt 
+           FROM mcq_answer AS m 
+           JOIN opt ON m.option_id = opt.id 
+           WHERE answer_id = ? AND opt.is_correct = FALSE`,
           [answer.id]
         );
         attempt.correct += correct[0].cnt;
         attempt.incorrect += incorrect[0].cnt;
       }
     }
+
+    // ====== Sort attempts by marks ======
     const sortedAttempts = firstAttempts.sort((a, b) => {
       if (a.awarded_marks === b.awarded_marks) {
         return a.user_id - b.user_id;
       }
       return b.awarded_marks - a.awarded_marks;
     });
+
+    // ====== Respond with exam + top 10 ======
     return res.send({ exam, attempts: sortedAttempts.slice(0, 10) });
   } catch (error) {
+    console.error("Error in getPublicExamInfo:", error);
     return res
       .status(constants.HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .send({ error, message: "Internal Server Error" });
   } finally {
     connection.release();
   }
-});
-
-export default pub;
+};
