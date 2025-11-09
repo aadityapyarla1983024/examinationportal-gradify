@@ -18,6 +18,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Link, useNavigate } from "react-router-dom";
+import { useContext, useState } from "react";
+import { UserContext } from "@/App";
 
 export function DashBoardSideBarNavUser({
   user,
@@ -29,7 +31,7 @@ export function DashBoardSideBarNavUser({
   };
 }) {
   const { isMobile } = useSidebar();
-
+  const { profile } = useContext(UserContext);
   const navigate = useNavigate();
   const handleLogOut = () => {
     localStorage.removeItem("token");

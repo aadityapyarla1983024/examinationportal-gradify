@@ -24,6 +24,7 @@ export default function App() {
     last_name: "",
     email: "",
     loggedin: false,
+    profile: "",
     token: "",
   });
   const [loading, setLoading] = useState(true);
@@ -41,12 +42,13 @@ export default function App() {
         },
       })
       .then((res) => {
-        const { user_id, first_name, last_name, email } = res.data;
+        const { user_id, first_name, last_name, email, profile } = res.data;
         setUser({
           user_id,
           first_name,
           last_name,
           email,
+          profile,
           token,
           loggedin: true,
         });
@@ -60,10 +62,13 @@ export default function App() {
       });
   }, []);
   return (
-    <UserContext.Provider value={{ user, setUser, loading, setLoading, localIp, protocol }}>
+    <UserContext.Provider
+      value={{ user, setUser, loading, setLoading, localIp, protocol }}
+    >
       <div className="flex-col h-screen">
         {!(
-          location.pathname.includes("/dashboard") || location.pathname.includes("/examattempt")
+          location.pathname.includes("/dashboard") ||
+          location.pathname.includes("/examattempt")
         ) && <Navbar01 />}
         <div className="flex flex-1 overflow-hidden">
           <Routes>
@@ -73,7 +78,10 @@ export default function App() {
             <Route path="/dashboard/*" element={<DashBoardRouter />} />
             <Route path="/examattempt/:excode" element={<ExamAttemptPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password/:jwt" element={<ResetPasswordPage />} />
+            <Route
+              path="/reset-password/:jwt"
+              element={<ResetPasswordPage />}
+            />
           </Routes>
           <ToastContainer />
         </div>

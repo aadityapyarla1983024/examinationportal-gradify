@@ -6,6 +6,12 @@ import fs from "fs";
 import https from "https";
 import http from "http";
 import config from "../config/dev.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // === ROUTES ===
 import authRoutes from "./routes/auth.routes.js";
@@ -17,6 +23,7 @@ import examinfoRoutes from "./routes/examinfo.routes.js";
 import pubRoutes from "./routes/publicexam.routes.js";
 import evaluateRoutes from "./routes/evaluate.routes.js";
 import statsRoutes from "./routes/stats.routes.js";
+import upload from "./routes/upload.routes.js";
 
 const app = express();
 
@@ -24,6 +31,7 @@ const app = express();
 app.use(express.json());
 app.use(helmet());
 app.use(morgan("tiny"));
+app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: true,
@@ -43,6 +51,8 @@ app.use("/api/examinfo", examinfoRoutes);
 app.use("/api/public-exam", pubRoutes);
 app.use("/api/evaluate", evaluateRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/upload", upload);
+app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 // === SERVER CONFIG ===
 const { port: PORT, host: HOST, ssl } = config.server.api;

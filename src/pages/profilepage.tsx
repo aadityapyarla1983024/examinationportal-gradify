@@ -1,11 +1,17 @@
 //@ts-nocheck
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { UserContext } from "@/App";
@@ -18,6 +24,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import ProfileImage from "@/components/profileupload";
+import { error } from "console";
 export default function ProfilePage() {
   const { user, setUser, localIp, protocol } = useContext(UserContext);
   const nameForm = useForm({
@@ -38,7 +46,34 @@ export default function ProfilePage() {
       new_confirm_password: "",
     },
   });
+
+  const profilePic = useRef(null);
+
   const nameUpdate = (data) => {
+    const formData = new FormData();
+    const uploadendpoint = `${protocol}://${localIp}:3000/api/upload/profile`;
+    axios
+      .post(uploadendpoint, formData, {
+        headers: {
+          ["x-auth-token"]: localStorage.getItem("token"),
+        },
+      })
+      .then((res) => {
+        toast.success("Image Uploaded Successfully");
+        setUser((prev) => ({
+          ...prev,
+          profile: res.data.filename,
+        }));
+      })
+      .catch((error) => {
+        if (error.response) {
+          toast.error(error.response.data.message);
+          console.error(error.response.data.error);
+        } else {
+          console.log(error);
+        }
+      });
+
     const apiendpoint = `${protocol}://${localIp}:3000/api/profile/nameupdate`;
     axios
       .post(apiendpoint, {
@@ -47,7 +82,7 @@ export default function ProfilePage() {
         user_id: user.user_id,
       })
       .then((res) => {
-        toast.success(res.data.message);
+        toast.success("Name updated successfully");
         setUser((prev) => ({
           ...prev,
           first_name: res.data.first_name,
@@ -124,7 +159,10 @@ export default function ProfilePage() {
   return (
     <>
       <div className="w-full mt-15 p-4 md:p-8">
-        <Tabs defaultValue="account" className="flex-col gap-10 lg:flex-row w-full">
+        <Tabs
+          defaultValue="account"
+          className="flex-col gap-10 lg:flex-row w-full"
+        >
           <TabsList className="lg:flex-col lg:items-start gap-3 mx-auto lg:mx-px lg:h-fit lg:p-3">
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="email">Email</TabsTrigger>
@@ -138,13 +176,10 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto md:flex-row">
                   <div className="flex justify-center">
-                    <Avatar className="size-50">
-                      <AvatarImage
-                        src="https://avatars.githubusercontent.com/u/173893599?v=4"
-                        alt="@shadcn"
-                      />
-                      <AvatarFallback className="text-2xl">CN</AvatarFallback>
-                    </Avatar>
+                    <ProfileImage
+                      initialPicUrl={`${protocol}://${localIp}:5173/images/upload/user/profile/${user.profile}`}
+                      profilePic={profilePic}
+                    />
                   </div>
                   <Form {...nameForm}>
                     <form onSubmit={nameForm.handleSubmit(nameUpdate)}>
@@ -202,8 +237,9 @@ export default function ProfilePage() {
                 <CardHeader>
                   <CardTitle>Email</CardTitle>
                   <CardDescription>
-                    Lorem ipsum dolor sit amet, consectetur adipisicing elit. Reprehenderit
-                    perspiciatis accusamus culpa quo, nobis quis aliquid. Quas optio magnam sint.
+                    Lorem ipsum dolor sit amet, consectetur adipisicing elit.
+                    Reprehenderit perspiciatis accusamus culpa quo, nobis quis
+                    aliquid. Quas optio magnam sint.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="md:w-[50%]">
@@ -247,9 +283,10 @@ export default function ProfilePage() {
                 <CardHeader>
                   <CardTitle>Authentication</CardTitle>
                   <CardDescription>
-                    Lorem, ipsum dolor sit amet consectetur adipisicing elit. Architecto, dolorem
-                    corporis corrupti libero iusto numquam nostrum reiciendis blanditiis facere cum
-                    provident, laboriosam eos, id iste et. Iste mollitia aliquid cum.
+                    Lorem, ipsum dolor sit amet consectetur adipisicing elit.
+                    Architecto, dolorem corporis corrupti libero iusto numquam
+                    nostrum reiciendis blanditiis facere cum provident,
+                    laboriosam eos, id iste et. Iste mollitia aliquid cum.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="lg:w-[50%]">
@@ -264,7 +301,8 @@ export default function ProfilePage() {
                             required: "Old password is required",
                             minLength: {
                               value: 8,
-                              message: "Password needs be atleast 8 digits long",
+                              message:
+                                "Password needs be atleast 8 digits long",
                             },
                           }}
                           name="old_password"
@@ -273,7 +311,11 @@ export default function ProfilePage() {
                             <FormItem>
                               <FormLabel>Old Password</FormLabel>
                               <FormControl>
-                                <Input type="password" className="w-full" {...field} />
+                                <Input
+                                  type="password"
+                                  className="w-full"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -286,7 +328,8 @@ export default function ProfilePage() {
                             required: "New password is required",
                             minLength: {
                               value: 8,
-                              message: "Password needs to be atleast 8 digits long",
+                              message:
+                                "Password needs to be atleast 8 digits long",
                             },
                             validate: (value) =>
                               value != passwordForm.getValues("old_password") ||
@@ -298,7 +341,11 @@ export default function ProfilePage() {
                             <FormItem>
                               <FormLabel>New Password</FormLabel>
                               <FormControl>
-                                <Input type="password" className="w-full" {...field} />
+                                <Input
+                                  type="password"
+                                  className="w-full"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -310,7 +357,8 @@ export default function ProfilePage() {
                           rules={{
                             required: "Confirm new password is required",
                             validate: (value) =>
-                              value === passwordForm.getValues("new_password") ||
+                              value ===
+                                passwordForm.getValues("new_password") ||
                               "Passwords don't match",
                           }}
                           control={passwordForm.control}
@@ -319,7 +367,11 @@ export default function ProfilePage() {
                             <FormItem>
                               <FormLabel>Confirm New Password</FormLabel>
                               <FormControl>
-                                <Input type="password" className="w-full" {...field} />
+                                <Input
+                                  type="password"
+                                  className="w-full"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -327,8 +379,8 @@ export default function ProfilePage() {
                         />
                       </div>
                       <p>
-                        Make sure it's at least 15 characters OR at least 8 characters including a
-                        number and a lowercase letter
+                        Make sure it's at least 15 characters OR at least 8
+                        characters including a number and a lowercase letter
                       </p>
                       <Button type="submit" className="w-fit">
                         Update

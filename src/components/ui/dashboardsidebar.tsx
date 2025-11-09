@@ -17,11 +17,13 @@ import { useContext } from "react";
 import { UserContext } from "@/App";
 
 export default function DashBoardSideBar() {
-  const { user, setUser } = useContext(UserContext);
+  const { user, setUser, protocol, localIp } = useContext(UserContext);
   const userData = {
     name: user.first_name + " " + user.last_name,
     email: user.email,
-    avatar: "https://avatars.githubusercontent.com/u/173893599?v=4",
+    avatar: user.profile
+      ? `${protocol}://${localIp}:5173/images/upload/user/profile/${user.profile}`
+      : "https://immunologie-kiel.de/wp-content/uploads/2021/12/profile-fallback.e7a6f788830c.jpg",
   };
   const { toggleSidebar } = useSidebar();
   return (

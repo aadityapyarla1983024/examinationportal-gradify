@@ -85,6 +85,7 @@ export const signin = async (req, res) => {
       first_name: user.first_name,
       last_name: user.last_name,
       email,
+      profile: user.profile,
       message: "Login successful",
     });
   } catch (error) {
@@ -160,12 +161,13 @@ export const loginVerify = async (req, res) => {
         .status(constants.HTTP_STATUS.BAD_REQUEST)
         .send({ message: "User does not exist" });
 
-    const { first_name, last_name, email } = result[0];
+    const { first_name, last_name, email, profile } = result[0];
     return res.send({
       user_id,
       first_name,
       last_name,
       email,
+      profile,
       message: "Token valid",
     });
   } catch (error) {
