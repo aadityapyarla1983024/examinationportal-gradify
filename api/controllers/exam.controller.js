@@ -18,6 +18,26 @@ const ExamSchema = z.object({
   scheduled_date: z.string().optional(),
 });
 
+// Function to initialize exam statistics
+const initializeExamStatistics = async (connection, exam_id) => {
+  try {
+    const insertStatsQuery = `
+      INSERT INTO exam_statistics (exam_id, total_attempts, highest_marks, lowest_marks, average_marks) 
+      VALUES (?, 0, 0, 0, 0)
+    `;
+    await connection.query(insertStatsQuery, [exam_id]);
+  } catch (error) {
+    console.error("Error initializing exam statistics:", error);
+    throw error;
+  }
+};
+
+// Helper function to ensure 2 decimal places
+const toDecimal = (value) => {
+  if (value === null || value === undefined) return null;
+  return parseFloat(Number(value).toFixed(2));
+};
+
 // ========================= CREATE NEW EXAM =========================
 export const createNewExam = async (req, res) => {
   const {
@@ -32,6 +52,8 @@ export const createNewExam = async (req, res) => {
     no_of_attempts,
     tags,
     domain,
+    total_marks,
+    partial_marking = false, // Added partial_marking
   } = req.body;
 
   const result = ExamSchema.safeParse({
@@ -64,8 +86,8 @@ export const createNewExam = async (req, res) => {
     const insertExam = `
       INSERT INTO exam 
       (user_id, exam_code, evaluation, domain_id, no_of_attempts, restriction_level, 
-       exam_type, exam_desc, duration_min, scheduled_date, title)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       exam_type, exam_desc, duration_min, scheduled_date, title, total_marks, partial_marking)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const examData = [
@@ -80,10 +102,15 @@ export const createNewExam = async (req, res) => {
       duration_min || null,
       datetime,
       exam_title,
+      toDecimal(total_marks), // Use decimal conversion
+      partial_marking, // Added partial_marking
     ];
 
     const [examResult] = await connection.query(insertExam, examData);
     const exam_id = examResult.insertId;
+
+    // Initialize exam statistics
+    await initializeExamStatistics(connection, exam_id);
 
     // ====== Handle Public Exam Tags ======
     if (exam_type === "public-exam") {
@@ -128,7 +155,7 @@ export const createNewExam = async (req, res) => {
       const params = [
         exam_id,
         question.title,
-        ...(evaluation !== "no" ? [question.marks] : []),
+        ...(evaluation !== "no" ? [toDecimal(question.marks)] : []), // Use decimal conversion
         QUESTION_TYPES[question.questionType],
       ];
 
@@ -207,13 +234,19 @@ export const getExamDetails = (req, res) => {
 export const getPublicExams = async (req, res) => {
   try {
     const query = `
-      SELECT exam_code, evaluation, title, exam_desc, domain_name, field_name,
-      no_of_attempts, duration_min, scheduled_date, e.created_at, first_name, last_name
+      SELECT 
+        e.id as exam_id,
+        e.exam_code, e.evaluation, e.title, e.exam_desc, e.partial_marking,
+        d.domain_name, f.field_name,
+        e.no_of_attempts, e.duration_min, e.scheduled_date, e.created_at, 
+        u.first_name, u.last_name, u.profile,
+        es.total_attempts, es.highest_marks, es.average_marks
       FROM exam AS e
-      JOIN user ON user_id = user.id
-      JOIN domain AS d ON domain_id = d.id
-      JOIN field ON field_id = field.id
-      WHERE exam_type = 'public-exam'
+      JOIN user u ON e.user_id = u.id
+      JOIN domain AS d ON e.domain_id = d.id
+      JOIN field f ON d.field_id = f.id
+      LEFT JOIN exam_statistics es ON e.id = es.exam_id
+      WHERE e.exam_type = 'public-exam'
     `;
     const [exams] = await db.query(query);
     return res.send(exams);

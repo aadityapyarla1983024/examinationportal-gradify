@@ -51,6 +51,7 @@ export default function ProfilePage() {
 
   const nameUpdate = (data) => {
     const formData = new FormData();
+    formData.append("profile", profilePic.current);
     const uploadendpoint = `${protocol}://${localIp}:3000/api/upload/profile`;
     axios
       .post(uploadendpoint, formData, {

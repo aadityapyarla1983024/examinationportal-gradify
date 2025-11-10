@@ -2,6 +2,7 @@
 import {
   DialogStack,
   DialogStackBody,
+  DialogStackClose,
   DialogStackContent,
   DialogStackDescription,
   DialogStackFooter,
@@ -59,6 +60,7 @@ import {
 } from "@/components/ui/dialog";
 import { CopyButton } from "@/components/ui/shadcn-io/copy-button";
 import SearchTag from "@/components/searchtags";
+
 const createBlankQuestion = () => ({
   id: 0,
   title: "",
@@ -70,23 +72,23 @@ const createBlankQuestion = () => ({
 });
 
 function CreateExamPage() {
-  const [questions, SetQuestions] = useState([]);
-  const [newQuestion, SetNewQuestion] = useState(createBlankQuestion());
+  const [questions, setQuestions] = useState([]);
+  const [newQuestion, setNewQuestion] = useState(createBlankQuestion());
 
   const [examTitle, setExamTitle] = useState("");
   const [duration, setDuration] = useState(undefined);
-  const [date, setDate] = useState<Date>();
+  const [date, setDate] = useState();
 
   const [examType, setExamType] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState<string>("");
+  const [selected, setSelected] = useState([]);
+  const [newTag, setNewTag] = useState("");
   const [tags, setTags] = useState([]);
 
   const [attemptType, setAttemptType] = useState("");
   const [noOfAttempts, setNoOfAttempts] = useState(undefined);
 
   const [evaluation, setEval] = useState("");
-  const [autoMarkingMarks, setautoMarkingMarks] = useState(undefined);
+  const [autoMarkingMarks, setAutoMarkingMarks] = useState(undefined);
 
   const [loading, setLoading] = useState(false);
   const [examDescription, setExamDescription] = useState("");
@@ -97,8 +99,8 @@ function CreateExamPage() {
   const [domains, setDomains] = useState([]);
   const [fields, setFields] = useState([]);
 
-  const [selectedField, setSelectedField] = useState(undefined);
-  const [selectedDomain, setSelectedDomain] = useState(undefined);
+  const [selectedField, setSelectedField] = useState("");
+  const [selectedDomain, setSelectedDomain] = useState("");
 
   const [level, setLevel] = useState("");
   const [marking, setMarking] = useState("");
@@ -108,188 +110,227 @@ function CreateExamPage() {
     exam_code: "",
   });
 
+  // Calculate auto marks per question whenever autoMarkingMarks or questions change
+  const marksPerQuestion =
+    autoMarkingMarks && questions.length > 0
+      ? (autoMarkingMarks / questions.length).toFixed(2)
+      : 0;
+
   useEffect(() => {
     setLoading(true);
     const getTags = async () => {
       try {
-        const tags = await axios.get(
-          `${protocol}://${localIp}:3000/api/exam/get-tags`,
-          {
-            headers: {
-              ["x-auth-token"]: localStorage.getItem("token"),
-            },
-          }
-        );
-        const domains = await axios.get(
-          `${protocol}://${localIp}:3000/api/exam/get-domains`,
-          {
-            headers: {
-              ["x-auth-token"]: localStorage.getItem("token"),
-            },
-          }
-        );
-        const fields = await axios.get(
-          `${protocol}://${localIp}:3000/api/exam/get-fields`,
-          {
-            headers: {
-              ["x-auth-token"]: localStorage.getItem("token"),
-            },
-          }
-        );
-        setTags(tags.data);
-        setFields(fields.data);
-        setDomains(domains.data);
+        const [tagsRes, domainsRes, fieldsRes] = await Promise.all([
+          axios.get(`${protocol}://${localIp}:3000/api/exam/get-tags`, {
+            headers: { ["x-auth-token"]: localStorage.getItem("token") },
+          }),
+          axios.get(`${protocol}://${localIp}:3000/api/exam/get-domains`, {
+            headers: { ["x-auth-token"]: localStorage.getItem("token") },
+          }),
+          axios.get(`${protocol}://${localIp}:3000/api/exam/get-fields`, {
+            headers: { ["x-auth-token"]: localStorage.getItem("token") },
+          }),
+        ]);
+
+        setTags(tagsRes.data);
+        setFields(fieldsRes.data);
+        setDomains(domainsRes.data);
         setLoading(false);
       } catch (error) {
-        if (error.response) {
-          console.log(error.response.data.error);
-        } else if (error.request) {
-          console.log(error.request);
-        } else {
-          console.log(error);
-        }
+        console.error(
+          "Error fetching data:",
+          error.response?.data?.error || error.message
+        );
         setLoading(false);
       }
     };
     getTags();
   }, []);
 
-  const handleSubmitExam = (event) => {
+  // Reset dependent states when evaluation changes
+  useEffect(() => {
+    if (evaluation === "no") {
+      setMarking("");
+      setAutoMarkingMarks(undefined);
+    }
+  }, [evaluation]);
+
+  // Reset auto marking marks when marking changes from auto to manual
+  useEffect(() => {
+    if (marking !== "auto") {
+      setAutoMarkingMarks(undefined);
+    }
+  }, [marking]);
+
+  // Reset domain when field changes
+  useEffect(() => {
+    setSelectedDomain("");
+  }, [selectedField]);
+
+  // Auto-switch evaluation from auto to manual when text questions are present
+  useEffect(() => {
+    // Check if evaluation is currently set to "auto"
+    if (evaluation === "auto") {
+      // Check if any existing question is of type "text"
+      const hasTextQuestion = questions.some(
+        (question) => question.questionType === "text"
+      );
+
+      // Check if the new question being created is of type "text"
+      const newQuestionIsText = newQuestion.questionType === "text";
+
+      // If either condition is true, switch to manual evaluation
+      if (hasTextQuestion || newQuestionIsText) {
+        setEval("manual");
+        toast.warning(
+          "Evaluation switched to Manual because text questions cannot be auto-evaluated"
+        );
+      }
+    }
+  }, [questions, newQuestion.questionType, evaluation]);
+
+  const handleSubmitExam = async (event) => {
     event.preventDefault();
-    if (examTitle === "") {
-      toast.error("Exam title is required");
+
+    // Check if there are text questions with auto evaluation (shouldn't happen with the above logic, but as a safety net)
+    if (
+      evaluation === "auto" &&
+      questions.some((q) => q.questionType === "text")
+    ) {
+      toast.error(
+        "Auto evaluation cannot be used with text questions. Please switch to manual evaluation."
+      );
       return;
     }
-    if (level === "") {
-      toast.error("Exam restriction level is required");
-      return;
+
+    // Validation
+    const validations = [
+      { condition: !examTitle, message: "Exam title is required" },
+      { condition: !level, message: "Exam restriction level is required" },
+      { condition: !evaluation, message: "Evaluation Method is required" },
+      {
+        condition: !marking && evaluation !== "no",
+        message: "Marking type is required",
+      },
+      {
+        condition:
+          marking === "auto" && (!autoMarkingMarks || autoMarkingMarks <= 0),
+        message: "Valid total marks are required for auto marking",
+      },
+      {
+        condition: questions.length === 0,
+        message: "Exam without questions can't be created",
+      },
+      {
+        condition: !examType,
+        message: "Exam without exam type can't be created",
+      },
+      {
+        condition: !selectedDomain,
+        message: "Exam without a domain can't be created",
+      },
+      {
+        condition: !selectedField,
+        message: "Exam without career field can't be created",
+      },
+      {
+        condition: !attemptType,
+        message: "Exam without attempt type can't be created",
+      },
+      {
+        condition:
+          attemptType === "limited-attempts" &&
+          (!noOfAttempts || noOfAttempts <= 0),
+        message: "Valid number of attempts is required",
+      },
+      {
+        condition: !examDescription,
+        message: "Exam without description can't be created",
+      },
+      {
+        condition: examType === "public-exam" && selected.length === 0,
+        message: "Public exam without search tags can't be created",
+      },
+    ];
+
+    for (const validation of validations) {
+      if (validation.condition) {
+        toast.error(validation.message);
+        return;
+      }
     }
-    if (evaluation === "") {
-      toast.error("Evaluation Method is required");
-      return;
-    }
-    if (marking === "") {
-      toast.error("Marking type is required");
-      return;
-    }
-    if (marking === "" && !autoMarkingMarks) {
-      toast.error("Marking without total exam marks cannot be permitted");
-      return;
-    }
-    if (questions.length === 0) {
-      toast.error("Exam without questions can't be created");
-      return;
-    }
-    if (examType === "") {
-      toast.error("Exam without exam type can't be created");
-      return;
-    }
-    if (selectedDomain === "") {
-      toast.error("Exam without a domain can't be created");
-      return;
-    }
-    if (selectedField === "") {
-      toast.error("Exam without career field  can't be created");
-      return;
-    }
-    if (attemptType === "") {
-      toast.error("Exam without attempt type can't be created");
-      return;
-    }
-    if (attemptType === "limited-attempts" && !noOfAttempts) {
-      toast.error("Exam without no of attempts can't be created");
-      return;
-    }
-    if (examDescription === "") {
-      toast.error("Exam without description can't be created");
-      return;
-    }
-    if (selected.length === 0 && examType === "public-exam") {
-      toast.error("Public exam without search tags can't be created");
-      return;
-    }
+
     const exam = {
       exam_title: examTitle,
       duration_min: duration,
       evaluation,
       level,
-      marking,
+      marking: evaluation === "no" ? "no" : marking,
       scheduled_date: date?.toISOString(),
       domain: selectedDomain,
       exam_type: examType,
       ...(examType === "public-exam" && { tags: selected }),
-      no_of_attempts: (() => {
-        if (attemptType === "unlimited-attempts") {
-          return -1;
-        } else if (attemptType === "limited-attempts") {
-          return noOfAttempts;
-        }
-      })(),
+      no_of_attempts: attemptType === "unlimited-attempts" ? -1 : noOfAttempts,
       exam_description: examDescription,
-      questions: (() => {
-        if (marking === "no") {
-          return questions.map(({ edit, marks, ...rest }) => rest);
-        } else if (marking === "auto") {
-          const resultant = questions.map((question) => ({
-            ...question,
-            marks: autoMarkingMarks / questions.length,
-          }));
-          return resultant.map(({ edit, ...rest }) => rest);
+      questions: questions.map((question) => {
+        const baseQuestion = {
+          title: question.title,
+          questionType: question.questionType,
+          options: question.options,
+          correctOptions: question.correctOptions,
+        };
+
+        if (marking === "auto") {
+          return {
+            ...baseQuestion,
+            marks: parseFloat(marksPerQuestion),
+          };
         } else if (marking === "manual") {
-          return questions.map(({ edit, ...rest }) => rest);
-        }
-      })(),
-    };
-    const apiendpoint = `${protocol}://${localIp}:3000/api/exam/new-exam`;
-    axios
-      .post(apiendpoint, exam, {
-        headers: {
-          "x-auth-token": user.token,
-        },
-      })
-      .then((res) => {
-        toast.success(res.data.message);
-        setDialog({
-          open: true,
-          exam_code: res.data.exam_code,
-        });
-      })
-      .catch((error) => {
-        if (error.response) {
-          console.log(error.response.data.error);
-          toast.error(error.response.data.message);
-        } else if (error.request) {
-          toast.error("No response recieved");
-          console.log(error.request);
+          return {
+            ...baseQuestion,
+            marks: question.marks || 0,
+          };
         } else {
-          toast.error("Request error");
-          console.log(error.message);
+          return baseQuestion;
         }
+      }),
+    };
+
+    try {
+      const apiendpoint = `${protocol}://${localIp}:3000/api/exam/new-exam`;
+      const res = await axios.post(apiendpoint, exam, {
+        headers: { "x-auth-token": user.token },
       });
+
+      toast.success(res.data.message);
+      setDialog({
+        open: true,
+        exam_code: res.data.exam_code,
+      });
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || error.request
+          ? "No response received"
+          : "Request error";
+      toast.error(errorMessage);
+      console.error("Exam creation error:", error);
+    }
   };
 
   const handleAddOption = () => {
-    SetNewQuestion((prev) => ({
+    setNewQuestion((prev) => ({
       ...prev,
-      options: [
-        ...prev.options,
-        {
-          id: prev.options.length + 1,
-          title: "",
-        },
-      ],
+      options: [...prev.options, { id: prev.options.length + 1, title: "" }],
     }));
   };
 
   const handleDeleteOption = (optionIdToDelete) => {
     if (newQuestion.options.length <= 2) {
-      toast.error("A question must contain atleast two options", {
-        toastId: "delete-option-error",
-      });
+      toast.error("A question must contain at least two options");
       return;
     }
 
-    SetNewQuestion((prev) => {
+    setNewQuestion((prev) => {
       const filteredOptions = prev.options.filter(
         (option) => option.id !== optionIdToDelete
       );
@@ -297,12 +338,22 @@ function CreateExamPage() {
         ...option,
         id: index + 1,
       }));
-      return { ...prev, options: renumberedOptions };
+
+      // Remove correct options that no longer exist
+      const updatedCorrectOptions = prev.correctOptions.filter((id) =>
+        renumberedOptions.some((opt) => opt.id === id)
+      );
+
+      return {
+        ...prev,
+        options: renumberedOptions,
+        correctOptions: updatedCorrectOptions,
+      };
     });
   };
 
   const handleQuestionTypeChange = (value) => {
-    SetNewQuestion((prev) => {
+    setNewQuestion((prev) => {
       if (value === "multi-choice" || value === "single-choice") {
         return {
           ...prev,
@@ -314,6 +365,13 @@ function CreateExamPage() {
           questionType: value,
         };
       } else {
+        // If changing to text question and evaluation is auto, switch to manual evaluation
+        if (value === "text" && evaluation === "auto") {
+          setEval("manual");
+          toast.warning(
+            "Evaluation switched to Manual because text questions cannot be auto-evaluated"
+          );
+        }
         return {
           ...prev,
           options: [],
@@ -325,11 +383,11 @@ function CreateExamPage() {
   };
 
   const handleQuestionChange = (value) => {
-    SetNewQuestion((prev) => ({ ...prev, title: value }));
+    setNewQuestion((prev) => ({ ...prev, title: value }));
   };
 
   const handleOptionChange = (value, optionId) => {
-    SetNewQuestion((prev) => ({
+    setNewQuestion((prev) => ({
       ...prev,
       options: prev.options.map((option) =>
         option.id === optionId ? { ...option, title: value } : option
@@ -338,18 +396,17 @@ function CreateExamPage() {
   };
 
   const handleCorrectOptionCheckChange = (checked, optionId) => {
-    SetNewQuestion((prev) => {
+    setNewQuestion((prev) => {
       if (prev.questionType === "single-choice") {
         return { ...prev, correctOptions: checked ? [optionId] : [] };
       }
 
-      let newCorrectOptions = [...prev.correctOptions];
-      if (checked) {
-        if (!newCorrectOptions.includes(optionId))
-          newCorrectOptions.push(optionId);
-      } else {
-        newCorrectOptions = newCorrectOptions.filter((id) => id !== optionId);
-      }
+      let newCorrectOptions = checked
+        ? [...prev.correctOptions, optionId].filter(
+            (id, index, array) => array.indexOf(id) === index
+          )
+        : prev.correctOptions.filter((id) => id !== optionId);
+
       return { ...prev, correctOptions: newCorrectOptions };
     });
   };
@@ -360,74 +417,66 @@ function CreateExamPage() {
     const { title, questionType, options, correctOptions, marks } = newQuestion;
     const isChoiceQuestion =
       questionType === "single-choice" || questionType === "multi-choice";
-    if (marking === "manual" && (marks === undefined || isNaN(marks))) {
-      toast.error("Please provide the marks for the new question");
-      return false;
+
+    // Validation
+    if (marking === "manual" && (!marks || isNaN(marks) || marks <= 0)) {
+      toast.error("Please provide valid marks for the new question");
+      return;
     }
-    if (!title) {
-      toast.error("Please provide a question title to add new question.");
-      return false;
+    if (!title.trim()) {
+      toast.error("Please provide a question title");
+      return;
     }
     if (!questionType) {
-      toast.error("Please provide a question type to add new question.");
-      return false;
+      toast.error("Please select a question type");
+      return;
     }
-    if (isChoiceQuestion && options.some((opt) => opt.title === "")) {
-      toast.error("Please fill out all option fields.");
-      return false;
+    if (isChoiceQuestion && options.some((opt) => !opt.title.trim())) {
+      toast.error("Please fill out all option fields");
+      return;
     }
     if (isChoiceQuestion && correctOptions.length === 0) {
-      toast.error("Please select at least one correct option.");
-      return false;
+      toast.error("Please select at least one correct option");
+      return;
     }
 
-    SetQuestions((prevQuestions) => {
-      const newId =
-        prevQuestions.length > 0
-          ? Math.max(...prevQuestions.map((q) => q.id)) + 1
-          : 1;
-      const questionToAdd = { ...newQuestion, id: newId };
-      return [...prevQuestions, questionToAdd];
-    });
+    const newId =
+      questions.length > 0 ? Math.max(...questions.map((q) => q.id)) + 1 : 1;
+    const questionToAdd = {
+      ...newQuestion,
+      id: newId,
+      marks: marking === "manual" ? marks : undefined,
+    };
 
-    SetNewQuestion(createBlankQuestion());
-    return true;
+    setQuestions((prev) => [...prev, questionToAdd]);
+    setNewQuestion(createBlankQuestion());
   };
 
   const editQuestion = (questionId) => {
-    SetQuestions((prev) => {
-      const newQuestions = [...prev];
-      const index = newQuestions.findIndex(
-        (question) => question.id === questionId
-      );
-      newQuestions[index].edit = true;
-      return newQuestions;
-    });
+    setQuestions((prev) =>
+      prev.map((question) =>
+        question.id === questionId ? { ...question, edit: true } : question
+      )
+    );
   };
 
   const deleteQuestion = (questionId) => {
-    SetQuestions((prev) => {
+    setQuestions((prev) => {
       const filtered = prev.filter((q) => q.id !== questionId);
       return filtered.map((q, index) => ({ ...q, id: index + 1 }));
     });
   };
-  useEffect(() => console.log(selected), [selected]);
 
   const handleAddOptionUpdate = (questionId) => {
-    SetQuestions((prev) =>
+    setQuestions((prev) =>
       prev.map((question) => {
-        if (question.id !== questionId) {
-          return question;
-        }
+        if (question.id !== questionId) return question;
 
         return {
           ...question,
           options: [
             ...question.options,
-            {
-              id: question.options.length + 1,
-              title: "",
-            },
+            { id: question.options.length + 1, title: "" },
           ],
         };
       })
@@ -435,14 +484,12 @@ function CreateExamPage() {
   };
 
   const handleDeleteOptionUpdate = (optionIdToDelete, questionId) => {
-    SetQuestions((prev) =>
+    setQuestions((prev) =>
       prev.map((question) => {
-        if (question.id !== questionId) {
-          return question;
-        }
+        if (question.id !== questionId) return question;
 
         if (question.options.length <= 2) {
-          toast.error("A question must contain atleast two options");
+          toast.error("A question must contain at least two options");
           return question;
         }
 
@@ -453,17 +500,34 @@ function CreateExamPage() {
           ...option,
           id: index + 1,
         }));
-        return { ...question, options: renumberedOptions };
+
+        // Remove correct options that no longer exist
+        const updatedCorrectOptions = question.correctOptions.filter((id) =>
+          renumberedOptions.some((opt) => opt.id === id)
+        );
+
+        return {
+          ...question,
+          options: renumberedOptions,
+          correctOptions: updatedCorrectOptions,
+        };
       })
     );
   };
 
   const handleQuestionTypeUpdate = (value, questionId) => {
-    SetQuestions((prev) =>
+    setQuestions((prev) =>
       prev.map((question) => {
-        if (question.id !== questionId) {
-          return question;
+        if (question.id !== questionId) return question;
+
+        // If changing to text question and evaluation is auto, switch to manual evaluation
+        if (value === "text" && evaluation === "auto") {
+          setEval("manual");
+          toast.warning(
+            "Evaluation switched to Manual because text questions cannot be auto-evaluated"
+          );
         }
+
         if (value === "multi-choice" || value === "single-choice") {
           return {
             ...question,
@@ -486,11 +550,10 @@ function CreateExamPage() {
   };
 
   const handleOptionUpdate = (value, optionId, questionId) => {
-    SetQuestions((prev) =>
+    setQuestions((prev) =>
       prev.map((question) => {
-        if (question.id !== questionId) {
-          return question;
-        }
+        if (question.id !== questionId) return question;
+
         return {
           ...question,
           options: question.options.map((option) =>
@@ -502,76 +565,57 @@ function CreateExamPage() {
   };
 
   const handleQuestionUpdate = (value, questionId) => {
-    SetQuestions((prev) =>
+    setQuestions((prev) =>
       prev.map((question) => {
-        if (question.id !== questionId) {
-          return question;
-        }
-        return {
-          ...question,
-          title: value,
-        };
+        if (question.id !== questionId) return question;
+
+        return { ...question, title: value };
       })
     );
   };
 
   const handleCorrectOptionCheckUpdate = (checked, optionId, questionId) => {
-    SetQuestions((prev) =>
+    setQuestions((prev) =>
       prev.map((question) => {
-        if (question.id !== questionId) {
-          return question;
-        }
+        if (question.id !== questionId) return question;
+
         if (question.questionType === "single-choice") {
           return { ...question, correctOptions: checked ? [optionId] : [] };
         }
 
-        let newCorrectOptions = [...question.correctOptions];
-        if (checked) {
-          if (!newCorrectOptions.includes(optionId))
-            newCorrectOptions.push(optionId);
-        } else {
-          newCorrectOptions = newCorrectOptions.filter((id) => id !== optionId);
-        }
+        let newCorrectOptions = checked
+          ? [...question.correctOptions, optionId].filter(
+              (id, index, array) => array.indexOf(id) === index
+            )
+          : question.correctOptions.filter((id) => id !== optionId);
+
         return { ...question, correctOptions: newCorrectOptions };
       })
     );
   };
 
   const updateQuestion = (questionId) => {
-    SetQuestions((prev) =>
-      prev.map((question) => {
-        if (question.id !== questionId) {
-          return question;
-        }
-
-        return {
-          ...question,
-          edit: false,
-        };
-      })
+    setQuestions((prev) =>
+      prev.map((question) =>
+        question.id === questionId ? { ...question, edit: false } : question
+      )
     );
   };
 
   const handleQuestionMarkChangeUpdate = (value, questionId) => {
-    SetQuestions((prev) => {
-      return prev.map((question) => {
-        if (questionId === question.id) {
-          return {
-            ...question,
-            marks: value,
-          };
-        }
-        return question;
-      });
-    });
+    setQuestions((prev) =>
+      prev.map((question) =>
+        question.id === questionId
+          ? { ...question, marks: parseFloat(value) || 0 }
+          : question
+      )
+    );
   };
 
   const handleQuestionMarkChange = (value) => {
-    SetNewQuestion((prev) => ({
-      ...prev,
-      marks: value,
-    }));
+    setNewQuestion((prev) => ({ ...prev, marks: parseFloat(value) || 0 }));
   };
+
   if (!loading) {
     return (
       <div className="form-container w-full p-10 md:p-24">
@@ -604,9 +648,7 @@ function CreateExamPage() {
                     />
                     <div className="flex flex-row justify-between flex-wrap gap-5">
                       <Select
-                        onValueChange={(value) =>
-                          setSelectedField(parseInt(value))
-                        }
+                        onValueChange={setSelectedField}
                         value={selectedField}
                       >
                         <SelectTrigger className="w-[180px]">
@@ -615,52 +657,45 @@ function CreateExamPage() {
                         <SelectContent>
                           <SelectGroup>
                             <SelectLabel>Select a field</SelectLabel>
-                            {fields.map((field) => {
-                              return (
-                                <SelectItem key={field.id} value={field.id}>
-                                  {field.field_name}
-                                </SelectItem>
-                              );
-                            })}
+                            {fields.map((field) => (
+                              <SelectItem key={field.id} value={field.id}>
+                                {field.field_name}
+                              </SelectItem>
+                            ))}
                           </SelectGroup>
                         </SelectContent>
                       </Select>
                       <Select
-                        onValueChange={(value) =>
-                          setSelectedDomain(parseInt(value))
-                        }
+                        onValueChange={setSelectedDomain}
                         value={selectedDomain}
+                        disabled={!selectedField}
                       >
                         <SelectTrigger className="w-[180px]">
                           <SelectValue placeholder="Domain" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            {selectedField && (
-                              <SelectLabel>Select a domain</SelectLabel>
-                            )}
-                            {!selectedField && (
-                              <SelectLabel className="text-red-500 font-semibold">
-                                Select a field first
-                              </SelectLabel>
-                            )}
-                            {domains.map((domain) => {
-                              if (domain.field_id === selectedField)
-                                return (
-                                  <SelectItem key={domain.id} value={domain.id}>
-                                    {domain.domain_name}
-                                  </SelectItem>
-                                );
-                            })}
+                            <SelectLabel>
+                              {selectedField
+                                ? "Select a domain"
+                                : "Select a field first"}
+                            </SelectLabel>
+                            {domains
+                              .filter(
+                                (domain) =>
+                                  domain.field_id === parseInt(selectedField)
+                              )
+                              .map((domain) => (
+                                <SelectItem key={domain.id} value={domain.id}>
+                                  {domain.domain_name}
+                                </SelectItem>
+                              ))}
                           </SelectGroup>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="flex flex-row flex-wrap justify-between gap-5">
-                      <Select
-                        onValueChange={(value) => setExamType(value)}
-                        value={examType}
-                      >
+                      <Select onValueChange={setExamType} value={examType}>
                         <SelectTrigger className="w-[180px]">
                           <SelectValue placeholder="Exam Type" />
                         </SelectTrigger>
@@ -679,10 +714,7 @@ function CreateExamPage() {
                           </SelectGroup>
                         </SelectContent>
                       </Select>
-                      <Select
-                        onValueChange={(value) => setLevel(value)}
-                        value={level}
-                      >
+                      <Select onValueChange={setLevel} value={level}>
                         <SelectTrigger className="w-[180px]">
                           <SelectValue placeholder="Restriction Level" />
                         </SelectTrigger>
@@ -702,21 +734,13 @@ function CreateExamPage() {
               <DialogStackFooter className="justify-end">
                 <DialogStackNext asChild>
                   <Button
-                    disabled={(() => {
-                      if (
-                        !(
-                          selectedDomain ||
-                          selectedField ||
-                          examTitle ||
-                          examType ||
-                          level
-                        )
-                      ) {
-                        return true;
-                      } else {
-                        return false;
-                      }
-                    })()}
+                    disabled={
+                      !examTitle ||
+                      !selectedField ||
+                      !selectedDomain ||
+                      !examType ||
+                      !level
+                    }
                     variant="default"
                   >
                     Next
@@ -731,15 +755,11 @@ function CreateExamPage() {
                 </DialogStackTitle>
                 <DialogStackDescription>
                   <div>
-                    Kindly please provide addtional details to handle exams
-                    properly{" "}
+                    Kindly please provide additional details to handle exams
+                    properly
                   </div>
-
                   <div className="my-10 mx-5 grid grid-cols-1 md:grid-cols-2 wrap-normal gap-5">
-                    <Select
-                      onValueChange={(value) => setEval(value)}
-                      value={evaluation}
-                    >
+                    <Select onValueChange={setEval} value={evaluation}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Evaluation" />
                       </SelectTrigger>
@@ -752,11 +772,8 @@ function CreateExamPage() {
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-                    <Select
-                      onValueChange={(value) => setAttemptType(value)}
-                      value={attemptType}
-                    >
-                      <SelectTrigger className="w-full">
+                    <Select onValueChange={setAttemptType} value={attemptType}>
+                      <SelectTrigger className="w-full col-start-1">
                         <SelectValue placeholder="No. of Attempts" />
                       </SelectTrigger>
                       <SelectContent>
@@ -771,13 +788,19 @@ function CreateExamPage() {
                         </SelectGroup>
                       </SelectContent>
                     </Select>
+                    <Input
+                      className="md:col-start-2 w-[180px]"
+                      type="number"
+                      value={noOfAttempts || ""}
+                      onChange={(e) => setNoOfAttempts(e.target.valueAsNumber)}
+                      placeholder="No. of Attempts"
+                      disabled={attemptType !== "limited-attempts"}
+                      min="1"
+                    />
                     <Select
-                      onValueChange={(value) => setMarking(value)}
+                      onValueChange={setMarking}
                       value={marking}
-                      disabled={(() => {
-                        if (evaluation === "no") return true;
-                        return false;
-                      })()}
+                      disabled={evaluation === "no"}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Marking Scheme" />
@@ -787,22 +810,22 @@ function CreateExamPage() {
                           <SelectLabel>Select Marking Scheme</SelectLabel>
                           <SelectItem value="auto">Auto</SelectItem>
                           <SelectItem value="manual">Manual</SelectItem>
-                          <SelectItem value="no">No Marking</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
                     <Input
-                      disabled={(() => {
-                        if (marking != "auto") {
-                          return true;
-                        }
-                        return false;
-                      })()}
+                      disabled={marking !== "auto"}
                       className="w-full"
                       placeholder="Max marks"
-                      value={autoMarkingMarks}
-                      onChange={(e) => setautoMarkingMarks(e.target.value)}
+                      value={autoMarkingMarks || ""}
+                      onChange={(e) =>
+                        setAutoMarkingMarks(
+                          parseFloat(e.target.value) || undefined
+                        )
+                      }
                       type="number"
+                      min="0"
+                      step="0.1"
                     />
                   </div>
                 </DialogStackDescription>
@@ -812,14 +835,27 @@ function CreateExamPage() {
                   <Button variant="secondary">Previous</Button>
                 </DialogStackPrevious>
                 <DialogStackNext asChild>
-                  <Button variant="default">Next</Button>
+                  <Button
+                    variant="default"
+                    disabled={
+                      !evaluation ||
+                      !attemptType ||
+                      !marking ||
+                      (marking === "auto" &&
+                        (!autoMarkingMarks || autoMarkingMarks <= 0)) ||
+                      (attemptType === "limited-attempts" &&
+                        (!noOfAttempts || noOfAttempts <= 0))
+                    }
+                  >
+                    Next
+                  </Button>
                 </DialogStackNext>
               </DialogStackFooter>
             </DialogStackContent>
             <DialogStackContent>
               <DialogStackHeader>
                 <DialogStackTitle>
-                  Would you like to schedule or time the exam ?
+                  Would you like to schedule or time the exam?
                 </DialogStackTitle>
                 <DialogStackDescription>
                   <div>
@@ -830,16 +866,18 @@ function CreateExamPage() {
                     <DateTimePicker24h
                       id="date"
                       className="md:col-start-4"
-                      setParentState={setDate}
-                    />{" "}
+                      onChange={setDate}
+                      value={date}
+                    />
                     <Input
                       id="duration"
-                      value={duration}
+                      value={duration || ""}
                       placeholder="Duration in min"
                       onChange={(e) => setDuration(e.target.valueAsNumber)}
                       type="number"
                       name="duration"
                       className="md:col-start-2"
+                      min="1"
                     />
                   </div>
                 </DialogStackDescription>
@@ -848,22 +886,28 @@ function CreateExamPage() {
                 <DialogStackPrevious asChild>
                   <Button variant="secondary">Previous</Button>
                 </DialogStackPrevious>
+                <DialogStackClose asChild>
+                  <Button variant="default">Start creating Exam</Button>
+                </DialogStackClose>
               </DialogStackFooter>
             </DialogStackContent>
           </DialogStackBody>
         </DialogStack>
+
+        {/* Rest of your JSX remains the same but with consistent state handling */}
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-5">
           <Label htmlFor="duration" className="md:col-start-1">
             Duration
           </Label>
           <Input
             id="duration"
-            value={duration}
+            value={duration || ""}
             placeholder="Duration in min"
             onChange={(e) => setDuration(e.target.valueAsNumber)}
             type="number"
             name="duration"
             className="md:col-start-2"
+            min="1"
           />
           <Label htmlFor="date" className="md:col-start-3">
             Schedule Exam On
@@ -871,8 +915,11 @@ function CreateExamPage() {
           <DateTimePicker24h
             id="date"
             className="md:col-start-4"
-            setParentState={setDate}
+            onChange={setDate}
+            value={date}
           />
+
+          {/* Settings Dialog */}
           <Dialog>
             <DialogTrigger asChild>
               <Button
@@ -886,205 +933,163 @@ function CreateExamPage() {
               <DialogHeader>
                 <DialogTitle>Exam Settings</DialogTitle>
                 <DialogDescription>
-                  Make changes to your profile here. Click save when you&apos;re
-                  done.
+                  Make changes to your exam settings here.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid grid-col-1 my-5 md:grid-cols-2 gap-5 place-items-center place-content-center">
-                <div className="flex gap-3 md:col-start-1">
-                  <Select
-                    onValueChange={(value) => setExamType(value)}
-                    value={examType}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Exam Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Select exam</SelectLabel>
-                        <SelectItem value="private-exam">
-                          Private Exam
-                        </SelectItem>
-                        <SelectItem value="public-exam">Public Exam</SelectItem>
-                        <SelectItem value="personal-exam">
-                          Personal Exam
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex gap-3 md:col-start-2">
-                  <Select
-                    onValueChange={(value) => setLevel(value)}
-                    value={level}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Restriction Level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Select Restriction Level</SelectLabel>
-                        <SelectItem value="zero">Zero</SelectItem>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Settings content - same as in DialogStack but with consistent state */}
+                <Select onValueChange={setExamType} value={examType}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Exam Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Select exam</SelectLabel>
+                      <SelectItem value="private-exam">Private Exam</SelectItem>
+                      <SelectItem value="public-exam">Public Exam</SelectItem>
+                      <SelectItem value="personal-exam">
+                        Personal Exam
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
 
-                <div className="flex gap-3 md:col-start-1">
-                  <Select
-                    onValueChange={(value) => setSelectedField(parseInt(value))}
-                    value={selectedField}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Field" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Select a field</SelectLabel>
-                        {fields.map((field) => {
-                          return (
-                            <SelectItem key={field.id} value={field.id}>
-                              {field.field_name}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex gap-3 md:col-start-2">
-                  <Select
-                    onValueChange={(value) =>
-                      setSelectedDomain(parseInt(value))
-                    }
-                    value={selectedDomain}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Domain" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {selectedField && (
-                          <SelectLabel>Select a domain</SelectLabel>
-                        )}
-                        {!selectedField && (
-                          <SelectLabel className="text-red-500 font-semibold">
-                            Select a field first
-                          </SelectLabel>
-                        )}
-                        {domains.map((domain) => {
-                          if (domain.field_id === selectedField)
-                            return (
-                              <SelectItem key={domain.id} value={domain.id}>
-                                {domain.domain_name}
-                              </SelectItem>
-                            );
-                        })}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex gap-3 md:col-start-1">
-                  <Select
-                    onValueChange={(value) => setEval(value)}
-                    value={evaluation}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Evaluation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Select Evaluation</SelectLabel>
-                        <SelectItem value="manual">Manual</SelectItem>
-                        <SelectItem value="auto">Auto</SelectItem>
-                        <SelectItem value="no">No Evaluation</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select onValueChange={setLevel} value={level}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Restriction Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Select Restriction Level</SelectLabel>
+                      <SelectItem value="zero">Zero</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
 
-                <div className="flex gap-3 md:col-start-1">
-                  <Select
-                    onValueChange={(value) => setAttemptType(value)}
-                    value={attemptType}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="No. of Attempts" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Select no of attempts</SelectLabel>
-                        <SelectItem value="limited-attempts">
-                          Limited
+                <Select onValueChange={setSelectedField} value={selectedField}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Field" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Select a field</SelectLabel>
+                      {fields.map((field) => (
+                        <SelectItem key={field.id} value={field.id}>
+                          {field.field_name}
                         </SelectItem>
-                        <SelectItem value="unlimited-attempts">
-                          Unlimited
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  onValueChange={setSelectedDomain}
+                  value={selectedDomain}
+                  disabled={!selectedField}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Domain" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>
+                        {selectedField
+                          ? "Select a domain"
+                          : "Select a field first"}
+                      </SelectLabel>
+                      {domains
+                        .filter(
+                          (domain) =>
+                            domain.field_id === parseInt(selectedField)
+                        )
+                        .map((domain) => (
+                          <SelectItem key={domain.id} value={domain.id}>
+                            {domain.domain_name}
+                          </SelectItem>
+                        ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
+                <Select onValueChange={setEval} value={evaluation}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Evaluation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Select Evaluation</SelectLabel>
+                      <SelectItem value="manual">Manual</SelectItem>
+                      <SelectItem value="auto">Auto</SelectItem>
+                      <SelectItem value="no">No Evaluation</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
+                <Select onValueChange={setAttemptType} value={attemptType}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="No. of Attempts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Select no of attempts</SelectLabel>
+                      <SelectItem value="limited-attempts">Limited</SelectItem>
+                      <SelectItem value="unlimited-attempts">
+                        Unlimited
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
                 <Input
-                  className="md:col-start-2 w-[180px]"
+                  className="w-[180px]"
                   type="number"
-                  value={noOfAttempts}
+                  value={noOfAttempts || ""}
                   onChange={(e) => setNoOfAttempts(e.target.valueAsNumber)}
                   placeholder="No. of Attempts"
-                  disabled={(() => {
-                    if (attemptType === "limited-attempts") {
-                      return false;
-                    }
-                    return true;
-                  })()}
+                  disabled={attemptType !== "limited-attempts"}
+                  min="1"
                 />
-                <div className="flex gap-3 md:col-start-1">
-                  <Select
-                    onValueChange={(value) => setMarking(value)}
-                    value={marking}
-                    disabled={(() => {
-                      if (evaluation === "no") {
-                        return true;
-                      }
-                      return false;
-                    })()}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Marking Scheme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Select Marking Scheme</SelectLabel>
-                        <SelectItem value="auto">Auto</SelectItem>
-                        <SelectItem value="manual">Manual</SelectItem>
-                        <SelectItem value="no">No Marking</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+
+                <Select
+                  onValueChange={setMarking}
+                  value={marking}
+                  disabled={evaluation === "no"}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Marking Scheme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Select Marking Scheme</SelectLabel>
+                      <SelectItem value="auto">Auto</SelectItem>
+                      <SelectItem value="manual">Manual</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
                 <Input
                   placeholder="Max marks"
-                  className="col-start-2 w-[180px]"
-                  value={autoMarkingMarks}
-                  onChange={(e) => setautoMarkingMarks(e.target.value)}
+                  className="w-[180px]"
+                  value={autoMarkingMarks || ""}
+                  onChange={(e) =>
+                    setAutoMarkingMarks(parseFloat(e.target.value) || undefined)
+                  }
                   type="number"
-                  disabled={(() => {
-                    if (marking != "auto") {
-                      return true;
-                    }
-                    return false;
-                  })()}
+                  disabled={marking !== "auto"}
+                  min="0"
+                  step="0.1"
                 />
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
+                  <Button type="submit">Save changes</Button>
                 </DialogClose>
-                <Button type="submit">Save changes</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
           <Label htmlFor="exam_title" className="md:col-start-1">
             Exam Title
           </Label>
@@ -1105,8 +1110,7 @@ function CreateExamPage() {
             className="md:col-start-2 md:col-span-3"
             placeholder="Enter exam description..."
           />
-          <Label className="md:col-start-1">Exam Description</Label>
-
+          <Label className="md:col-start-1">Search Tags</Label>
           <SearchTag
             className={"md:col-start-2 md:col-span-3"}
             selected={selected}
@@ -1119,25 +1123,23 @@ function CreateExamPage() {
         </div>
 
         <ToastContainer />
-        {questions.map((question) => {
-          if (question.edit !== true) {
-            return (
-              <Card key={question.id} className="my-10">
+
+        {/* Questions List */}
+        {questions.map((question) => (
+          <Card key={question.id} className="my-10">
+            {!question.edit ? (
+              // Display mode
+              <>
                 <CardHeader>
                   <CardTitle className="text-xl">
                     {"Q" + question.id + ". " + question.title}
                   </CardTitle>
                   <CardAction>
                     {marking === "auto" && (
-                      <h2 className="font-semibold">
-                        {isNaN(autoMarkingMarks / questions.length)
-                          ? ""
-                          : autoMarkingMarks / questions.length}
-                        M
-                      </h2>
+                      <h2 className="font-semibold">{marksPerQuestion} M</h2>
                     )}
                     {marking === "manual" && (
-                      <h2 className="font-semibold">{question.marks}M</h2>
+                      <h2 className="font-semibold">{question.marks} M</h2>
                     )}
                   </CardAction>
                 </CardHeader>
@@ -1148,7 +1150,6 @@ function CreateExamPage() {
                       placeholder="Answer in descriptive form"
                     />
                   )}
-
                   {question.questionType === "single-choice" && (
                     <CreateSingleChoiceOptions options={question.options} />
                   )}
@@ -1158,28 +1159,22 @@ function CreateExamPage() {
                 </CardContent>
                 <CardFooter className="flex gap-x-2">
                   <Button
-                    onClick={() => {
-                      editQuestion(question.id);
-                    }}
-                    variant={"ghost"}
+                    onClick={() => editQuestion(question.id)}
+                    variant="ghost"
                   >
-                    <Pencil />
-                    Edit Question
+                    <Pencil /> Edit Question
                   </Button>
                   <Button
-                    type="button"
                     onClick={() => deleteQuestion(question.id)}
-                    variant={"ghost"}
+                    variant="ghost"
                   >
-                    <X />
-                    Delete
+                    <X /> Delete
                   </Button>
                 </CardFooter>
-              </Card>
-            );
-          } else {
-            return (
-              <Card className="my-10">
+              </>
+            ) : (
+              // Edit mode
+              <>
                 <CardHeader>
                   <CardTitle className="text-xl flex gap-x-2">
                     <Textarea
@@ -1189,7 +1184,6 @@ function CreateExamPage() {
                         handleQuestionUpdate(e.target.value, question.id)
                       }
                       value={question.title}
-                      type="text"
                       autoFocus
                     />
                     <div className="flex-col flex gap-2">
@@ -1221,11 +1215,13 @@ function CreateExamPage() {
                           placeholder="Marks"
                           onChange={(e) =>
                             handleQuestionMarkChangeUpdate(
-                              parseInt(e.target.value),
+                              e.target.value,
                               question.id
                             )
                           }
-                          value={question.marks}
+                          value={question.marks || ""}
+                          min="0"
+                          step="0.1"
                         />
                       )}
                     </div>
@@ -1257,12 +1253,11 @@ function CreateExamPage() {
                               question.id
                             )
                           }
-                          type="text"
                           placeholder={"Option " + option.id.toString()}
                         />
                         <Button
                           type="button"
-                          variant={"ghost"}
+                          variant="ghost"
                           onClick={() =>
                             handleDeleteOptionUpdate(option.id, question.id)
                           }
@@ -1292,15 +1287,17 @@ function CreateExamPage() {
                   )}
                   <Button
                     onClick={() => updateQuestion(question.id)}
-                    variant={"ghost"}
+                    variant="ghost"
                   >
                     Update
                   </Button>
                 </CardFooter>
-              </Card>
-            );
-          }
-        })}
+              </>
+            )}
+          </Card>
+        ))}
+
+        {/* New Question Form */}
         <form onSubmit={handleNewQuestionSubmit}>
           <Card className="my-10">
             <CardHeader>
@@ -1309,7 +1306,6 @@ function CreateExamPage() {
                   placeholder="Question Title"
                   onChange={(e) => handleQuestionChange(e.target.value)}
                   value={newQuestion.title}
-                  type="text"
                   autoFocus
                 />
                 <div className="flex-col flex gap-4">
@@ -1335,13 +1331,13 @@ function CreateExamPage() {
                   </Select>
                   {marking === "manual" && (
                     <Input
-                      value={newQuestion.marks}
-                      onChange={(e) =>
-                        handleQuestionMarkChange(parseInt(e.target.value))
-                      }
+                      value={newQuestion.marks || ""}
+                      onChange={(e) => handleQuestionMarkChange(e.target.value)}
                       placeholder="Marks"
                       type="number"
                       className="w-[50%]"
+                      min="0"
+                      step="0.1"
                     />
                   )}
                 </div>
@@ -1369,7 +1365,7 @@ function CreateExamPage() {
                     />
                     <Button
                       type="button"
-                      variant={"ghost"}
+                      variant="ghost"
                       onClick={() => handleDeleteOption(option.id)}
                     >
                       <X />
@@ -1387,7 +1383,7 @@ function CreateExamPage() {
                 newQuestion.questionType === "multi-choice") && (
                 <Button
                   type="button"
-                  variant={"outline"}
+                  variant="outline"
                   onClick={handleAddOption}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Option
@@ -1397,16 +1393,15 @@ function CreateExamPage() {
           </Card>
 
           <div className="newquestionbuttoncontainer gap-2 flex justify-end">
-            <Button type="submit" variant={"outline"}>
-              <Plus />
-              Add Question
+            <Button type="submit" variant="outline">
+              <Plus /> Add Question
             </Button>
-            <Button type="button" onClick={(e) => handleSubmitExam(e)}>
+            <Button type="button" onClick={handleSubmitExam}>
               Create Exam
-              {/* <CircleArrowRight /> */}
             </Button>
           </div>
         </form>
+
         <CopyExamCodeDialog
           exam_code={dialog.exam_code}
           navigate={navigate}
@@ -1436,7 +1431,7 @@ export function CopyExamCodeDialog({ exam_code, open, navigate }) {
                 setTimeout(() => navigate("/dashboard"), 2000);
               }}
               content={exam_code}
-              size={"md"}
+              size="md"
             />
           </div>
         </DialogHeader>

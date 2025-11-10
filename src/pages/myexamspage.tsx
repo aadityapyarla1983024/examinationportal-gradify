@@ -15,6 +15,7 @@ import { useContext, useEffect, useState } from "react";
 import { UserContext } from "@/App";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { EmptyPublicExams } from "./publicexampage.tsx";
 
 export default function MyExamsPage() {
   const { protocol, user, localIp } = useContext(UserContext);
@@ -94,6 +95,10 @@ export default function MyExamsPage() {
                           {exam.field_name}
                           {" | "}
                           {exam.domain_name}
+                          {" | "}
+                          {exam.evaluation[0].toUpperCase() +
+                            exam.evaluation.slice(1)}{" "}
+                          {"Evaluation"}
                         </CardDescription>
                       </CardHeader>
 
@@ -178,7 +183,9 @@ export default function MyExamsPage() {
                   );
                 })}
               {examsCreated.length === 0 && (
-                <h1 className="p-4">No Exam created</h1>
+                <div className="mx-auto my-auto h-full">
+                  <EmptyPublicExams />
+                </div>
               )}
             </ScrollArea>
           </div>
@@ -315,12 +322,61 @@ export default function MyExamsPage() {
                   );
                 })}
               {examsAttempted.length === 0 && (
-                <h1 className="p-4">No Exams Attempted</h1>
+                <div className="mx-auto my-auto h-full">
+                  <NoAttemptsYet />
+                </div>
               )}
             </ScrollArea>
           </div>
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+import { Pencil } from "lucide-react";
+import { ArrowUpRightIcon } from "lucide-react";
+
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+
+export function NoAttemptsYet() {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Pencil />
+        </EmptyMedia>
+        <EmptyTitle>No attempts Yet</EmptyTitle>
+        <EmptyDescription>
+          Get started by attempting your first exam.
+        Have an exam code ?
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <div className="flex gap-2">
+          <Link to={"/dashboard/enter-exam"}>
+          
+          <Button>Attempt exam</Button>
+          </Link>
+        </div>
+      </EmptyContent>
+      <Button
+        variant="link"
+        asChild
+        className="text-muted-foreground"
+        size="sm"
+      >
+        <Link to={"/dashboard/create-exam"}>
+          Create an exam <ArrowUpRightIcon />
+        </Link>
+      </Button>
+    </Empty>
   );
 }

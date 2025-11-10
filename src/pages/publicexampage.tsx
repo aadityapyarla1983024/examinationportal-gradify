@@ -31,6 +31,7 @@ function PublicExamPage() {
         });
         setExams(res.data);
         setLoading(false);
+        console.log(res.data);
       } catch (error) {
         if (error.response) {
           toast.error(error.response.data.message);
@@ -104,12 +105,52 @@ function PublicExamPage() {
                   </Link>
                 );
               })}
-            {filteredExams.length === 0 && <h1>No results</h1>}
           </div>
+          {filteredExams.length === 0 && (
+            <div className="mx-auto my-auto">
+              <EmptyPublicExams />
+            </div>
+          )}
         </div>
       </>
     );
   }
+}
+
+import { ClipboardPen } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+
+export function EmptyPublicExams() {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <ClipboardPen />
+        </EmptyMedia>
+        <EmptyTitle>No Exams Created Yet</EmptyTitle>
+        <EmptyDescription>
+          You haven&apos;t created any exams yet. Get started by creating your
+          first exam.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <div className="flex gap-2">
+          <Link to={"/dashboard/create-exam"}>
+            <Button>Create Exam</Button>
+          </Link>
+        </div>
+      </EmptyContent>
+    </Empty>
+  );
 }
 
 export default PublicExamPage;

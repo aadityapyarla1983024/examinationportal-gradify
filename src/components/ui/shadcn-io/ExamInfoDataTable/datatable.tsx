@@ -57,24 +57,24 @@ export function ExamViewDataTable({ attempts, evaluation, exam_code }) {
         <div className="capitalize">{row.getValue("serial")}</div>
       ),
     },
-    {
-      accessorKey: "roll",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            className=""
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Roll
-            <ArrowUpDown />
-          </Button>
-        );
-      },
-      cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("roll")}</div>
-      ),
-    },
+    // {
+    //   accessorKey: "roll",
+    //   header: ({ column }) => {
+    //     return (
+    //       <Button
+    //         variant="ghost"
+    //         className=""
+    //         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+    //       >
+    //         Roll
+    //         <ArrowUpDown />
+    //       </Button>
+    //     );
+    //   },
+    //   cell: ({ row }) => (
+    //     <div className="capitalize">{row.getValue("roll")}</div>
+    //   ),
+    // },
     {
       accessorKey: "name",
       header: "Name",
@@ -261,11 +261,19 @@ export function ExamViewDataTable({ attempts, evaluation, exam_code }) {
         (column) =>
           column.accessorKey != "status" &&
           column.accessorKey != "awarded_marks" &&
-          column.accessorKey != "score"
+          column.accessorKey != "score" &&
+          column.accessorKey != "attempt_id"
       );
       return updated;
     }
-    return columns;
+    if (evaluation === "auto") {
+      const updated = columns.filter(
+        (column) =>
+          column.accessorKey != "status" && column.accessorKey != "attempt_id"
+      );
+      return updated;
+    }
+    return columns.filter((column) => column.accessorKey != "attempt_id");
   };
 
   const updatedColumns = updateColumns(evaluation, columns);

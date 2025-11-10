@@ -1,15 +1,21 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import CardSpotlight from "./ui/shadcn-studio/animatedcard";
 import { Infinity } from "lucide-react";
+import { useContext } from "react";
+import { UserContext } from "@/App";
 
 function PublicExamCard({ exam }) {
+  const { protocol, localIp } = useContext(UserContext);
   const title = exam.title;
   const content = exam.desc;
   const footer = (
     <>
       <div className="flex flex-row justify-between items-center">
         <Avatar>
-          <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+          <AvatarImage
+            src={`${protocol}://${localIp}:5173/images/upload/user/profile/${exam.profile}`}
+            alt="@shadcn"
+          />
           <AvatarFallback>PR</AvatarFallback>
         </Avatar>
         <p className="font-medium text-l ml-2">

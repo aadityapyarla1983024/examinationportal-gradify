@@ -72,6 +72,44 @@ export default function ExamAttemptViewPage() {
       (value, index) => value === sortedCorrect[index]
     );
   };
+
+  // Helper function to determine what to display for text questions with no evaluation
+  const getTextQuestionStatus = (question, currentAnswer) => {
+    // If evaluation type is "no evaluation", always show as submitted
+    if (exam.evaluation_type === "no") {
+      return {
+        status: "submitted",
+        icon: null, // No icon for no evaluation
+        text: "Submitted",
+        className: "text-blue-500",
+      };
+    }
+
+    // For other evaluation types, use the existing logic
+    if (currentAnswer.awarded_marks == null) {
+      return {
+        status: "pending",
+        icon: <h3 className="font-medium">Pending</h3>,
+        text: "Pending",
+        className: "text-yellow-500",
+      };
+    }
+    if (currentAnswer.awarded_marks != 0) {
+      return {
+        status: "correct",
+        icon: <Check color="#00c20d" strokeWidth={3} />,
+        text: "Correct",
+        className: "text-green-500",
+      };
+    }
+    return {
+      status: "incorrect",
+      icon: <X color="red" strokeWidth={3} />,
+      text: "Incorrect",
+      className: "text-red-500",
+    };
+  };
+
   if (!loading) {
     return (
       <>
@@ -96,12 +134,16 @@ export default function ExamAttemptViewPage() {
                       <CardTitle>
                         Total Incorrect: {attempt.total_incorrect}
                       </CardTitle>
+                      {/* Show evaluation type */}
+                      <CardTitle>
+                        Evaluation Type: {exam.evaluation_type || "auto"}
+                      </CardTitle>
                     </div>
                   </CardHeader>
                 </Card>
               </div>
               <div className="px-5">
-                {exam.questions.map((question) => {
+                {exam.questions?.map((question) => {
                   const currentAnswer = answers.find(
                     (answer) => answer.question_id === question.id
                   );
@@ -111,7 +153,12 @@ export default function ExamAttemptViewPage() {
                   const correctOptions = question.correctOptions
                     ? question.correctOptions
                     : [];
-                  console.log(currentAnswer);
+
+                  const textQuestionStatus = getTextQuestionStatus(
+                    question,
+                    currentAnswer
+                  );
+
                   return (
                     <Card key={question.id} className="my-10">
                       <CardHeader>
@@ -119,37 +166,53 @@ export default function ExamAttemptViewPage() {
                           {"Q" + (question.id + 1) + ". " + question.title}
                         </CardTitle>
                         <CardAction>
-                          {question.question_type != "text" &&
+                          {/* For multiple choice and single choice questions */}
+                          {question.question_type !== "text" &&
                             areAnswersCorrect(
                               checkedOptions,
                               correctOptions
                             ) && <Check color="#00c20d" strokeWidth={3} />}
-                          {question.question_type != "text" &&
+                          {question.question_type !== "text" &&
                             !areAnswersCorrect(
                               checkedOptions,
                               correctOptions
                             ) && <X color="red" strokeWidth={3} />}
-                          {question.question_type === "text" &&
-                            currentAnswer.awarded_marks == null && (
-                              <h3 className="font-medium">Pending</h3>
-                            )}
-                          {question.question_type === "text" &&
-                            currentAnswer.awarded_marks != 0 && (
-                              <Check color="#00c20d" strokeWidth={3} />
-                            )}
-                          {question.question_type === "text" &&
-                            currentAnswer.awarded_marks === 0 && (
-                              <X color="red" strokeWidth={3} />
-                            )}
+
+                          {/* For text questions */}
+                          {question.question_type === "text" && (
+                            <div
+                              className={`flex items-center gap-2 ${textQuestionStatus.className}`}
+                            >
+                              {textQuestionStatus.icon}
+                              <span className="font-medium">
+                                {textQuestionStatus.text}
+                              </span>
+                            </div>
+                          )}
                         </CardAction>
                       </CardHeader>
                       <CardContent>
                         {question.question_type === "text" && (
-                          <Textarea
-                            cols={4}
-                            placeholder="Answer in descriptive form"
-                            value={currentAnswer.text_answer}
-                          />
+                          <div>
+                            <Textarea
+                              cols={4}
+                              placeholder="Answer in descriptive form"
+                              value={currentAnswer?.text_answer || ""}
+                              readOnly
+                              className="mb-3"
+                            />
+                            {/* Show additional info for no evaluation type */}
+                            {exam.evaluation_type === "no evaluation" && (
+                              <div className="text-sm text-gray-600 mt-2 p-2 bg-gray-50 rounded">
+                                <p>
+                                  This question is not automatically evaluated.
+                                </p>
+                                <p>
+                                  Your response has been submitted for review.
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         )}
                         {question.question_type === "multi-choice" && (
                           <MultiChoiceOptionsView

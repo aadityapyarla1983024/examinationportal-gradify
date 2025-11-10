@@ -152,7 +152,6 @@ export const DialogStackTrigger = ({
 };
 
 export type DialogStackOverlayProps = HTMLAttributes<HTMLDivElement>;
-
 export const DialogStackOverlay = ({
   className,
   ...props
@@ -165,25 +164,33 @@ export const DialogStackOverlay = ({
 
   const handleClick = useCallback(() => {
     context.setIsOpen(false);
-  }, [context.setIsOpen]);
+    // Reset to first dialog when closing via overlay
+    setTimeout(() => {
+      context.setActiveIndex(0);
+    }, 300);
+  }, [context]);
 
   if (!context.isOpen) {
     return null;
   }
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: "This is a clickable overlay"
-    // biome-ignore lint/a11y/useKeyWithClickEvents: "This is a clickable overlay"
-    <div
-      className={cn(
-        "fixed inset-0 z-50 bg-black/80",
-        "data-[state=closed]:animate-out data-[state=open]:animate-in",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        className
-      )}
-      onClick={handleClick}
-      {...props}
-    />
+    <Portal.Root>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className={cn(
+          "fixed inset-0 z-50 bg-black/80",
+          "data-[state=closed]:animate-out data-[state=open]:animate-in",
+          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+          className
+        )}
+        onClick={handleClick}
+        {...props}
+      />
+    </Portal.Root>
   );
 };
 
@@ -205,10 +212,6 @@ export const DialogStackBody = ({
     throw new Error("DialogStackBody must be used within a DialogStack");
   }
 
-  if (!context.isOpen) {
-    return null;
-  }
-
   return (
     <DialogStackContext.Provider
       value={{
@@ -218,37 +221,46 @@ export const DialogStackBody = ({
       }}
     >
       <Portal.Root>
-        <div
-          className={cn(
-            "pointer-events-none fixed inset-0 z-50 mx-auto flex w-full max-w-lg flex-col items-center justify-center",
-            className
+        <AnimatePresence>
+          {context.isOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={cn(
+                "pointer-events-none fixed inset-0 z-50 mx-auto flex w-full max-w-lg flex-col items-center justify-center",
+                className
+              )}
+              {...props}
+            >
+              <div className="pointer-events-auto relative flex w-full flex-col items-center justify-center">
+                <AnimatePresence mode="wait">
+                  {Children.map(children, (child, index) => {
+                    if (index !== context.activeIndex) return null;
+                    const childElement = child as ReactElement<{
+                      index: number;
+                    }>;
+                    return (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        className="w-full"
+                      >
+                        {cloneElement(childElement, {
+                          ...childElement.props,
+                          index,
+                        })}
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </motion.div>
           )}
-          {...props}
-        >
-          <div className="pointer-events-auto relative flex w-full flex-col items-center justify-center">
-            <AnimatePresence mode="wait">
-              {Children.map(children, (child, index) => {
-                if (index !== context.activeIndex) return null; // only render active
-                const childElement = child as ReactElement<{ index: number }>;
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
-                    className="w-full"
-                  >
-                    {cloneElement(childElement, {
-                      ...childElement.props,
-                      index,
-                    })}
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        </div>
+        </AnimatePresence>
       </Portal.Root>
     </DialogStackContext.Provider>
   );
@@ -524,6 +536,57 @@ export const DialogStackPrevious = ({
       {...props}
     >
       {children || "Previous"}
+    </button>
+  );
+};
+
+export const DialogStackClose = ({
+  children,
+  className,
+  asChild,
+  ...props
+}: DialogStackPreviousProps) => {
+  const context = useContext(DialogStackContext);
+
+  if (!context) {
+    throw new Error("DialogStackClose must be used within a DialogStack");
+  }
+
+  const handleClose = () => {
+    context.setIsOpen(false);
+    // Optionally reset to first dialog when closing
+    setTimeout(() => {
+      context.setActiveIndex(0);
+    }, 300); // Wait for close animation to complete
+  };
+
+  if (asChild && children) {
+    const child = children as ReactElement<{
+      onClick: MouseEventHandler<HTMLButtonElement>;
+      className?: string;
+    }>;
+
+    return cloneElement(child, {
+      onClick: (e: MouseEvent<HTMLButtonElement>) => {
+        handleClose();
+        child.props.onClick?.(e);
+      },
+      className: cn(className, child.props.className),
+      ...props,
+    });
+  }
+
+  return (
+    <button
+      className={cn(
+        "inline-flex items-center justify-center whitespace-nowrap rounded-md font-medium text-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        className
+      )}
+      onClick={handleClose}
+      type="button"
+      {...props}
+    >
+      {children || "Close"}
     </button>
   );
 };

@@ -25,14 +25,18 @@ export default function ExamInfoPage() {
   const [stats, setStats] = useState({});
   const [attempts, setAttempts] = useState([]);
 
-  function getChartData(attempts, totalMarks) {
+  function getChartData(attempts, totalMarks, evaluation) {
+    // For non-evaluated exams, return empty chart data
+    if (evaluation === "no") return [];
     if (!totalMarks || totalMarks <= 0) return [];
+
     const rangeSize = totalMarks / 10;
     const chartdata = Array.from({ length: 10 }, (_, i) => {
       const lower = Math.round(i * rangeSize);
       const upper = Math.round((i + 1) * rangeSize);
       return { range: `${lower}-${upper}`, frequency: 0 };
     });
+
     for (const attempt of attempts) {
       const marks = attempt.awarded_marks ?? 0;
       const index = Math.min(9, Math.floor((marks / totalMarks) * 10));
@@ -67,7 +71,10 @@ export default function ExamInfoPage() {
   }, []);
 
   if (!loading) {
-    const chartdata = getChartData(attempts, exam.total_marks);
+    const { evaluation } = exam;
+    const isEvaluated = evaluation !== "no";
+
+    const chartdata = getChartData(attempts, exam.total_marks, evaluation);
     const {
       title,
       domain_name,
@@ -76,12 +83,19 @@ export default function ExamInfoPage() {
       restriction_level,
       created_by,
     } = exam;
-    let { exam_type, duration_min, total_marks, evaluation } = exam;
+    let { exam_type, duration_min, total_marks } = exam;
 
-    total_marks = evaluation === "no" ? "N/A" : Number(total_marks).toFixed(1);
+    // FIX: Only show actual total marks for evaluated exams, otherwise show "Ungraded"
+    const displayTotalMarks = isEvaluated
+      ? Number(total_marks).toFixed(1)
+      : "Ungraded";
 
-    evaluation =
-      evaluation === "no" ? "N/A" : evaluation === "manual" ? "Manual" : "Auto";
+    const evaluationText =
+      evaluation === "no"
+        ? "Not Evaluated"
+        : evaluation === "manual"
+        ? "Manual"
+        : "Auto";
 
     exam_type = (() => {
       let split = exam_type.split("-", 2);
@@ -114,6 +128,12 @@ export default function ExamInfoPage() {
       return `${((value / total) * 100).toFixed(1)}%`;
     };
 
+    const displayStatValue = (value, evaluationType) => {
+      if (evaluationType === "no") return "Ungraded";
+      if (value === null || value === undefined) return "Pending";
+      return Number(value).toFixed(1);
+    };
+
     return (
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2 lg:w-[90%] mx-auto">
@@ -129,18 +149,15 @@ export default function ExamInfoPage() {
                 <div className="flex flex-col gap-5">
                   <CardTitle>Created By: {created_by}</CardTitle>
                   <CardTitle>Field: {field_name}</CardTitle>
-                  <CardTitle>Evaluation: {evaluation}</CardTitle>
+                  <CardTitle>Evaluation: {evaluationText}</CardTitle>
                   <CardTitle>Exam Type: {exam_type}</CardTitle>
                   <CardTitle>
                     Restriction:{" "}
                     {restriction_level[0].toUpperCase() +
                       restriction_level.slice(1)}
                   </CardTitle>
-                  {exam.duration_min && (
-                    <CardTitle>
-                      Total Marks: {Number(exam.total_marks).toFixed(1)}
-                    </CardTitle>
-                  )}
+                  {/* FIX: Use displayTotalMarks instead of total_marks */}
+                  <CardTitle>Total Marks: {displayTotalMarks}</CardTitle>
                 </div>
               </CardHeader>
             </Card>
@@ -159,9 +176,9 @@ export default function ExamInfoPage() {
                 <CardHeader>
                   <CardDescription>Highest</CardDescription>
                   <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                    {displayValue(stats.max, exam.evaluation, exam.total_marks)}
+                    {displayStatValue(stats.max, exam.evaluation)}
                   </CardTitle>
-                  {exam.evaluation !== "no" && (
+                  {isEvaluated && (
                     <CardAction>
                       <Badge variant="outline" className="text-2xl">
                         {displayPercentage(
@@ -179,9 +196,9 @@ export default function ExamInfoPage() {
                 <CardHeader>
                   <CardDescription>Average</CardDescription>
                   <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                    {displayValue(stats.avg, exam.evaluation, exam.total_marks)}
+                    {displayStatValue(stats.avg, exam.evaluation)}
                   </CardTitle>
-                  {exam.evaluation !== "no" && (
+                  {isEvaluated && (
                     <CardAction>
                       <Badge variant="outline" className="text-2xl">
                         {displayPercentage(
@@ -199,9 +216,9 @@ export default function ExamInfoPage() {
                 <CardHeader>
                   <CardDescription>Least Score</CardDescription>
                   <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                    {displayValue(stats.min, exam.evaluation, exam.total_marks)}
+                    {displayStatValue(stats.min, exam.evaluation)}
                   </CardTitle>
-                  {exam.evaluation !== "no" && (
+                  {isEvaluated && (
                     <CardAction>
                       <Badge variant="outline" className="text-2xl">
                         {displayPercentage(
@@ -216,12 +233,17 @@ export default function ExamInfoPage() {
               </Card>
             </div>
 
-            <div>
-              <ExaminationStatisticsBarChart chartdata={chartdata} />
-            </div>
-            <div>
-              <Top10QuestionsChart />
-            </div>
+            {isEvaluated && (
+              <>
+                <div>
+                  <ExaminationStatisticsBarChart chartdata={chartdata} />
+                </div>
+                {/* <div>
+                  <Top10QuestionsChart />
+                </div> */}
+              </>
+            )}
+
             <div>
               <ExamViewDataTable
                 exam_code={exam.exam_code}

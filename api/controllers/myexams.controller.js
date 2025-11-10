@@ -10,7 +10,7 @@ export const getUserExams = async (req, res) => {
     const getExamsQuery = `
       SELECT 
         title, e.id, duration_min, scheduled_date, exam_code, no_of_attempts, 
-        created_at, exam_type, domain_name, field_name 
+        created_at, exam_type, domain_name, field_name , evaluation
       FROM exam AS e 
       JOIN domain AS d ON e.domain_id = d.id 
       JOIN field ON d.field_id = field.id 
@@ -91,7 +91,9 @@ export const getUserExams = async (req, res) => {
 
     // ====== Flatten and sort by submission time ======
     const attempts = Object.values(groupedAttempts).flat();
-    attempts.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+    attempts.sort(
+      (a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)
+    );
 
     // ====== Respond ======
     return res.send({

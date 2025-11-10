@@ -16,7 +16,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./card";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { UserContext } from "@/App";
@@ -42,6 +48,7 @@ export default function SignInForm() {
           user_id: res.data.user_id,
           first_name: res.data.first_name,
           last_name: res.data.last_name,
+          profile: res.data.profile,
           email: res.data.email,
           token: res.headers["x-auth-token"],
           loggedin: true,
@@ -69,7 +76,9 @@ export default function SignInForm() {
       <Form {...form}>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome</CardTitle>
-          <CardDescription>Login with your Email or Google account</CardDescription>
+          <CardDescription>
+            Login with your Email or Google account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-5 mb-10">
@@ -115,7 +124,10 @@ export default function SignInForm() {
               name="password"
               rules={{
                 required: "Password is required",
-                minLength: { value: 8, message: "Password must be at least 6 characters" },
+                minLength: {
+                  value: 8,
+                  message: "Password must be at least 6 characters",
+                },
               }}
               render={({ field }) => (
                 <FormItem>
@@ -140,7 +152,8 @@ export default function SignInForm() {
               Sign In
             </Button>
             <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-              By clicking continue, you agree to our <a href="#">Terms of Service</a> and{" "}
+              By clicking continue, you agree to our{" "}
+              <a href="#">Terms of Service</a> and{" "}
               <a href="#">Privacy Policy</a>.
             </div>
           </form>
