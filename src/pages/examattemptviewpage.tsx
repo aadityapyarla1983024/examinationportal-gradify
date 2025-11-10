@@ -6,6 +6,7 @@ import {
   CardTitle,
   CardAction,
 } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, X } from "lucide-react";
 import {
@@ -14,9 +15,10 @@ import {
 } from "@/components/ui/shadcn-io/radio-group/newquestionoptions";
 import { useContext, useEffect, useState } from "react";
 import { UserContext } from "@/App";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { Button } from "@/components/ui/button";
 
 export default function ExamAttemptViewPage() {
   const { user, protocol, localIp } = useContext(UserContext);
@@ -25,6 +27,7 @@ export default function ExamAttemptViewPage() {
   const [exam, setExam] = useState({});
   const [attempt, setAttempt] = useState({});
   const [answers, setAnswers] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAttempt = async () => {
@@ -236,6 +239,16 @@ export default function ExamAttemptViewPage() {
                 })}
               </div>
             </main>
+          </div>
+          <div className="w-full flex flex-row justify-end align-bottom px-10">
+            <Button
+              onClick={() => {
+                navigate(-1);
+              }}
+            >
+              <ArrowLeft />
+              Go Back
+            </Button>
           </div>
         </div>
       </>

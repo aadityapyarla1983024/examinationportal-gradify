@@ -136,7 +136,7 @@ export default function ExamInfoPage() {
 
     return (
       <div className="flex flex-1 flex-col">
-        <div className="@container/main flex flex-1 flex-col gap-2 lg:w-[90%] mx-auto">
+        <div className="@container/main flex flex-1 flex-col gap-2 lg:w-[90%] mx-auto w-full px-10">
           <div className="flex flex-col gap-4 py-4 md:gap-10 md:py-10">
             <Card>
               <CardHeader className="flex flex-row justify-between">

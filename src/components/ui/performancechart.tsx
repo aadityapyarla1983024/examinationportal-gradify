@@ -1,11 +1,13 @@
 //@ts-nocheck
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import type { ChartConfig } from "@/components/ui/chart";
+  CartesianGrid,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import {
   Card,
   CardContent,
@@ -17,143 +19,157 @@ import {
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
+// 🧠 Custom tooltip showing all four metrics
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload?.length) {
+    const d = payload[0].payload;
+    return (
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-md shadow-md p-3 text-xs space-y-1">
+        <p className="font-semibold text-blue-600">
+          {new Date(d.submitted_at).toLocaleString()}
+        </p>
+        <p>
+          <strong>Your Marks:</strong> {d.awarded_marks} / {d.total_marks}
+        </p>
+        <p>
+          <strong>Exam Avg:</strong> {d.exam_avg_marks} / {d.total_marks}
+        </p>
+        <p>
+          <strong>Exam Max:</strong> {d.exam_max_marks} / {d.total_marks}
+        </p>
+        <p>
+          <strong>Exam Min:</strong> {d.exam_min_marks} / {d.total_marks}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function ChartLineInteractive({ userStats }) {
   const [chartData, setChartData] = useState([]);
   const [trend, setTrend] = useState(0);
 
   useEffect(() => {
-    if (userStats?.recent_attempts) {
-      // Process recent attempts for the chart
-      const processedData = userStats.recent_attempts
-        .slice(0, 6) // Last 6 attempts
-        .map((attempt, index) => ({
-          date: new Date(attempt.submitted_at).toISOString().split("T")[0],
-          score: attempt.percentage || 0,
-          time: attempt.time_taken_minutes || 0,
-          attempt: `Attempt ${index + 1}`,
-        }))
-        .reverse(); // Show oldest to newest
+    if (!userStats?.all_attempts?.length) return;
 
-      setChartData(processedData);
+    const data = userStats.all_attempts
+      .filter(
+        (a) =>
+          a.submitted_at &&
+          a.total_marks !== null &&
+          a.total_marks !== undefined
+      )
+      .map((a) => ({
+        date: new Date(a.submitted_at).toISOString().split("T")[0],
+        submitted_at: a.submitted_at,
+        total_marks: Number(a.total_marks) || 0,
+        awarded_marks: Number(a.awarded_marks) || 0,
+        exam_avg_marks: Number(a.exam_avg_marks) || 0,
+        exam_max_marks: Number(a.exam_max_marks) || 0,
+        exam_min_marks: Number(a.exam_min_marks) || 0,
+      }));
 
-      // Calculate trend (simple comparison of first vs last)
-      if (processedData.length >= 2) {
-        const firstScore = processedData[0].score;
-        const lastScore = processedData[processedData.length - 1].score;
-        const trendValue = ((lastScore - firstScore) / firstScore) * 100;
-        setTrend(trendValue);
-      }
+    setChartData(data);
+
+    if (data.length >= 2) {
+      const first = data[0].awarded_marks;
+      const last = data[data.length - 1].awarded_marks;
+      const denom = first === 0 ? 1 : first;
+      setTrend(((last - first) / denom) * 100);
     }
   }, [userStats]);
 
-  const chartConfig = {
-    score: {
-      label: "Your Score",
-      color: "var(--chart-1)",
-    },
-    time: {
-      label: "Time Taken (min)",
-      color: "var(--chart-2)",
-    },
-  } satisfies ChartConfig;
-
-  if (!userStats?.recent_attempts || userStats.recent_attempts.length === 0) {
+  if (!chartData.length) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Performance History</CardTitle>
-          <CardDescription>No recent attempts to display</CardDescription>
+          <CardTitle>Performance Trend</CardTitle>
+          <CardDescription>No attempts available yet</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-            Start taking exams to see your performance history
+          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+            Take some exams to visualize your performance.
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  const yMax = Math.max(
+    ...chartData.flatMap((d) => [
+      d.awarded_marks,
+      d.exam_avg_marks,
+      d.exam_max_marks,
+      d.total_marks,
+    ])
+  );
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Performance History</CardTitle>
+        <CardTitle>Performance Trend</CardTitle>
         <CardDescription>
-          Last {chartData.length} attempts •{" "}
-          {userStats.overall_percentage?.toFixed(1)}% average
+          Your marks vs exam min / avg / max (by date)
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer
-          className="aspect-auto h-[250px] w-full"
-          config={chartConfig}
-        >
-          <LineChart
-            accessibilityLayer
-            data={chartData}
-            margin={{
-              left: 12,
-              right: 12,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="attempt"
-              tickLine={true}
-              axisLine={true}
-              tickMargin={8}
-            />
-            <YAxis
-              tickLine={true}
-              axisLine={true}
-              tickMargin={8}
-              tickCount={5}
-              domain={[0, 100]}
-              tickFormatter={(value) => `${value}%`}
-            />
+        {/* ✅ ResponsiveContainer ensures chart height renders */}
+        <div className="w-full h-[320px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={chartData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis domain={[0, Math.ceil(yMax / 10) * 10]} />
+              <Tooltip content={<CustomTooltip />} />
 
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  className="w-[180px]"
-                  nameKey={["score", "time"]}
-                  formatter={(value, name) => {
-                    if (name === "score") return [`${value}%`, "Score"];
-                    if (name === "time") return [`${value} min`, "Time Taken"];
-                    return [value, name];
-                  }}
-                />
-              }
-            />
-            <Line
-              dataKey="score"
-              type="natural"
-              stroke="var(--color-score)"
-              strokeWidth={2}
-              dot={{ r: 4, fill: "var(--color-score)" }}
-              activeDot={{ r: 6 }}
-            />
-          </LineChart>
-        </ChartContainer>
+              <Line
+                type="monotone"
+                dataKey="awarded_marks"
+                stroke="var(--chart-1)"
+                strokeWidth={2}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+                name="Your Marks"
+              />
+              <Line
+                type="monotone"
+                dataKey="exam_avg_marks"
+                stroke="var(--chart-2)"
+                strokeWidth={2}
+                strokeDasharray="4 3"
+                dot={{ r: 3 }}
+                name="Exam Avg"
+              />
+              <Line
+                type="monotone"
+                dataKey="exam_max_marks"
+                stroke="var(--chart-3)"
+                strokeWidth={2}
+                strokeDasharray="3 3"
+                dot={{ r: 3 }}
+                name="Exam Max"
+              />
+              <Line
+                type="monotone"
+                dataKey="exam_min_marks"
+                stroke="var(--chart-4)"
+                strokeWidth={2}
+                strokeDasharray="2 2"
+                dot={{ r: 3 }}
+                name="Exam Min"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 leading-none font-medium">
-          {trend > 0 ? (
-            <>
-              Trending up by {Math.abs(trend).toFixed(1)}%{" "}
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            </>
-          ) : trend < 0 ? (
-            <>
-              Trending down by {Math.abs(trend).toFixed(1)}%{" "}
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            </>
-          ) : (
-            "Stable performance"
-          )}
-        </div>
-        <div className="text-muted-foreground leading-none">
-          Showing your last {chartData.length} exam attempts with scores and
-          completion times
+        <div className="text-muted-foreground">
+          Each dot = one attempt • Tooltip shows your marks + exam min/avg/max +
+          total
         </div>
       </CardFooter>
     </Card>

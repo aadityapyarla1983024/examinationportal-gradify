@@ -129,7 +129,7 @@ export function DateTimePicker24h({ value, onChange }) {
           {value ? (
             format(value, "MM/dd/yyyy HH:mm")
           ) : (
-            <span>MM/DD/YYYY HH:mm (min 1 hour from now)</span>
+            <span>MM/DD/YYYY HH:mm</span>
           )}
         </Button>
       </PopoverTrigger>

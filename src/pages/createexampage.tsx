@@ -110,6 +110,10 @@ function CreateExamPage() {
     exam_code: "",
   });
 
+  useEffect(() => {
+    setSelected([]);
+  }, [examType]);
+
   // Calculate auto marks per question whenever autoMarkingMarks or questions change
   const marksPerQuestion =
     autoMarkingMarks && questions.length > 0
@@ -909,8 +913,9 @@ function CreateExamPage() {
             className="md:col-start-2"
             min="1"
           />
-          <Label htmlFor="date" className="md:col-start-3">
+          <Label htmlFor="date" className="md:col-start-3 flex flex-col">
             Schedule Exam On
+            <div>(Min 1 hour from now)</div>
           </Label>
           <DateTimePicker24h
             id="date"
@@ -1110,16 +1115,20 @@ function CreateExamPage() {
             className="md:col-start-2 md:col-span-3"
             placeholder="Enter exam description..."
           />
-          <Label className="md:col-start-1">Search Tags</Label>
-          <SearchTag
-            className={"md:col-start-2 md:col-span-3"}
-            selected={selected}
-            setSelected={setSelected}
-            newTag={newTag}
-            setNewTag={setNewTag}
-            tags={tags}
-            setTags={setTags}
-          />
+          {examType === "public-exam" && (
+            <>
+              <Label className="md:col-start-1">Search Tags</Label>
+              <SearchTag
+                className={"md:col-start-2 md:col-span-3"}
+                selected={selected}
+                setSelected={setSelected}
+                newTag={newTag}
+                setNewTag={setNewTag}
+                tags={tags}
+                setTags={setTags}
+              />
+            </>
+          )}
         </div>
 
         <ToastContainer />

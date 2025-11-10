@@ -295,129 +295,173 @@ stats.post("/get-exam-statistics", verfiyToken, async (req, res) => {
   }
 });
 
-// Get user's overall performance across all exams
 stats.post("/get-user-overall-statistics", verfiyToken, async (req, res) => {
   try {
     const { user_id } = req;
+    if (!user_id)
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID missing" });
 
-    if (!user_id) {
-      return res.status(400).json({
-        error: "User ID is required",
-        message: "Please provide a valid user ID",
-      });
-    }
-
-    // Query to get overall statistics
-    const overallStatsQuery = `
+    // 🔹 Fetch all user attempts with exam statistics and computed percentages
+    const allAttemptsQuery = `
       SELECT 
-        COUNT(DISTINCT ea.exam_id) as total_exams_attempted,
-        COUNT(ea.id) as total_attempts,
-        SUM(CASE WHEN ea.awarded_marks IS NOT NULL THEN 1 ELSE 0 END) as evaluated_attempts,
-        AVG(ea.awarded_marks) as overall_average_marks,
-        MAX(ea.awarded_marks) as best_marks,
-        MIN(ea.awarded_marks) as worst_marks,
-        SUM(CASE WHEN (ea.awarded_marks / e.total_marks * 100) >= 60 THEN 1 ELSE 0 END) as passed_exams,
-        AVG(CASE WHEN ea.awarded_marks IS NOT NULL THEN (ea.awarded_marks / e.total_marks * 100) ELSE NULL END) as overall_percentage,
-        SUM(TIMESTAMPDIFF(MINUTE, ea.started_at, ea.submitted_at)) as total_time_spent_minutes
-      FROM exam_attempt ea
-      JOIN exam e ON ea.exam_id = e.id
-      WHERE ea.user_id = ?
-      AND ea.submitted_at IS NOT NULL
-    `;
-
-    const [stats] = await db.query(overallStatsQuery, [user_id]);
-
-    // Query to get recent attempts
-    const recentAttemptsQuery = `
-      SELECT 
-        ea.id as attempt_id,
+        ea.id AS attempt_id,
         ea.exam_id,
+        e.title AS exam_title,
+        COALESCE(e.total_marks, 1) AS total_marks,
         ea.awarded_marks,
         ea.started_at,
         ea.submitted_at,
-        e.title as exam_title,
-        e.total_marks,
-        (ea.awarded_marks / e.total_marks * 100) as percentage,
-        TIMESTAMPDIFF(MINUTE, ea.started_at, ea.submitted_at) as time_taken_minutes
-      FROM exam_attempt ea
-      JOIN exam e ON ea.exam_id = e.id
-      WHERE ea.user_id = ?
-      AND ea.submitted_at IS NOT NULL
-      ORDER BY ea.submitted_at DESC
-      LIMIT 5
-    `;
-
-    const [recentAttempts] = await db.query(recentAttemptsQuery, [user_id]);
-
-    // Query to get performance by domain
-    const domainPerformanceQuery = `
-      SELECT 
+        TIMESTAMPDIFF(MINUTE, ea.started_at, ea.submitted_at) AS time_taken_minutes,
+        (ea.awarded_marks / COALESCE(e.total_marks, 1) * 100) AS user_percentage,
+        (es.highest_marks / COALESCE(e.total_marks, 1) * 100) AS exam_max_percentage,
+        (es.lowest_marks / COALESCE(e.total_marks, 1) * 100) AS exam_min_percentage,
+        (es.average_marks / COALESCE(e.total_marks, 1) * 100) AS exam_avg_percentage,
         d.domain_name,
-        f.field_name,
-        COUNT(ea.id) as attempts,
-        AVG(ea.awarded_marks / e.total_marks * 100) as average_percentage,
-        MAX(ea.awarded_marks / e.total_marks * 100) as best_percentage
+        f.field_name
       FROM exam_attempt ea
       JOIN exam e ON ea.exam_id = e.id
       JOIN domain d ON e.domain_id = d.id
       JOIN field f ON d.field_id = f.id
+      LEFT JOIN exam_statistics es ON e.id = es.exam_id
       WHERE ea.user_id = ?
       AND ea.submitted_at IS NOT NULL
-      AND ea.awarded_marks IS NOT NULL
-      GROUP BY d.domain_name, f.field_name
-      ORDER BY average_percentage DESC
+      ORDER BY ea.submitted_at ASC
     `;
 
-    const [domainPerformance] = await db.query(domainPerformanceQuery, [
-      user_id,
-    ]);
+    const [attempts] = await db.query(allAttemptsQuery, [user_id]);
 
-    const result = {
-      user_id: parseInt(user_id),
-      total_exams_attempted: stats[0].total_exams_attempted || 0,
-      total_attempts: stats[0].total_attempts || 0,
-      evaluated_attempts: stats[0].evaluated_attempts || 0,
-      overall_average_marks: toDecimal(stats[0].overall_average_marks),
-      best_marks: toDecimal(stats[0].best_marks),
-      worst_marks: toDecimal(stats[0].worst_marks),
-      passed_exams: stats[0].passed_exams || 0,
-      overall_percentage: toDecimal(stats[0].overall_percentage),
-      total_time_spent_minutes: stats[0].total_time_spent_minutes || 0,
-      average_time_per_exam:
-        stats[0].total_attempts > 0
-          ? Math.round(
-              stats[0].total_time_spent_minutes / stats[0].total_attempts
-            )
-          : 0,
-      recent_attempts: recentAttempts.map((attempt) => ({
-        attempt_id: attempt.attempt_id,
-        exam_id: attempt.exam_id,
-        exam_title: attempt.exam_title,
-        awarded_marks: toDecimal(attempt.awarded_marks),
-        total_marks: toDecimal(attempt.total_marks),
-        percentage: toDecimal(attempt.percentage),
-        submitted_at: attempt.submitted_at,
-        time_taken_minutes: attempt.time_taken_minutes,
-      })),
-      domain_performance: domainPerformance.map((domain) => ({
-        domain_name: domain.domain_name,
-        field_name: domain.field_name,
-        attempts: domain.attempts,
-        average_percentage: toDecimal(domain.average_percentage),
-        best_percentage: toDecimal(domain.best_percentage),
-      })),
-    };
+    // 🔹 If no attempts found
+    if (!attempts.length) {
+      return res.status(200).json({
+        success: true,
+        message: "User has no evaluated attempts yet",
+        data: {
+          user_id,
+          total_exams_created: 0,
+          total_attempts_made: 0,
+          highest_score_percent: 0,
+          average_score_percent: 0,
+          all_attempts: [],
+        },
+      });
+    }
+
+    // 🔹 Compute statistics from user’s attempt percentages
+    const percentages = attempts.map((a) =>
+      a.user_percentage !== null && !isNaN(a.user_percentage)
+        ? parseFloat(a.user_percentage)
+        : 0
+    );
+
+    const highest_score_percent =
+      percentages.length > 0 ? Math.max(...percentages) : 0;
+
+    const average_score_percent =
+      percentages.length > 0
+        ? percentages.reduce((a, b) => a + b, 0) / percentages.length
+        : 0;
+
+    const total_attempts_made = attempts.length;
+
+    // 🔹 Count exams created by this user
+    const [created] = await db.query(
+      `SELECT COUNT(*) AS total_exams_created FROM exam WHERE user_id = ?`,
+      [user_id]
+    );
+    const total_exams_created = created[0].total_exams_created || 0;
+
+    // 🔹 Send response
+    res.status(200).json({
+      success: true,
+      message: "User statistics fetched successfully",
+      data: {
+        user_id,
+        total_exams_created,
+        total_attempts_made,
+        highest_score_percent: toDecimal(highest_score_percent),
+        average_score_percent: toDecimal(average_score_percent),
+        all_attempts: attempts.map((a) => ({
+          attempt_id: a.attempt_id,
+          exam_id: a.exam_id,
+          exam_title: a.exam_title,
+          field_name: a.field_name,
+          domain_name: a.domain_name,
+          total_marks: toDecimal(a.total_marks),
+          awarded_marks: toDecimal(a.awarded_marks),
+          user_percentage: toDecimal(a.user_percentage),
+          exam_avg_marks: toDecimal(a.exam_avg_percentage),
+          exam_max_marks: toDecimal(a.exam_max_percentage),
+          exam_min_marks: toDecimal(a.exam_min_percentage),
+          submitted_at: a.submitted_at,
+          time_taken_minutes: a.time_taken_minutes,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error("Error in get-user-overall-statistics:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error fetching user statistics",
+      error: error.message,
+    });
+  }
+});
+
+/* ========================================================================
+   ROUTE: Get individual exam statistics
+   ======================================================================== */
+stats.post("/get-exam-statistics", verfiyToken, async (req, res) => {
+  try {
+    const { exam_id } = req.body;
+    const { user_id } = req;
+
+    if (!exam_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Exam ID is required",
+      });
+    }
+
+    const examStatsQuery = `
+      SELECT 
+        e.id as exam_id,
+        e.title as exam_title,
+        e.total_marks,
+        es.total_attempts,
+        es.highest_marks,
+        es.lowest_marks,
+        es.average_marks,
+        COUNT(ea.id) as user_attempts,
+        MAX(ea.awarded_marks) as user_highest,
+        MIN(ea.awarded_marks) as user_lowest,
+        AVG(ea.awarded_marks) as user_average
+      FROM exam e
+      LEFT JOIN exam_statistics es ON e.id = es.exam_id
+      LEFT JOIN exam_attempt ea ON e.id = ea.exam_id AND ea.user_id = ?
+      WHERE e.id = ?
+      GROUP BY e.id
+    `;
+    const [stats] = await db.query(examStatsQuery, [user_id, exam_id]);
+
+    if (!stats.length)
+      return res.status(404).json({
+        success: false,
+        message: "Exam not found",
+      });
 
     res.json({
       success: true,
-      message: "Overall statistics retrieved successfully",
-      data: result,
+      message: "Exam statistics fetched successfully",
+      data: stats[0],
     });
   } catch (error) {
-    console.error("Error fetching overall statistics:", error);
+    console.error("Error fetching exam statistics:", error);
     res.status(500).json({
-      error: "Internal server error",
-      message: "Unable to retrieve overall statistics",
+      success: false,
+      message: "Internal server error fetching exam statistics",
+      error: error.message,
     });
   }
 });

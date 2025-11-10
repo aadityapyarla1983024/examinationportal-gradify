@@ -18,145 +18,105 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserExamStatistics = async () => {
+    const fetchStats = async () => {
       try {
-        const apiendpoint = `${protocol}://${localIp}:3000/api/stats/get-user-overall-statistics`;
+        const api = `${protocol}://${localIp}:3000/api/stats/get-user-overall-statistics`;
         const res = await axios.post(
-          apiendpoint,
+          api,
           { user_id: JSON.parse(localStorage.getItem("user")).id },
-          {
-            headers: {
-              ["x-auth-token"]: localStorage.getItem("token"),
-            },
-          }
+          { headers: { ["x-auth-token"]: localStorage.getItem("token") } }
         );
-        console.log("User stats:", res.data);
         setUserStats(res.data.data);
+        console.log("User stats:", res.data.data);
       } catch (error) {
-        if (error.response) {
-          toast.error(error.response.data.message);
-          console.log(error.response.data.error);
-        } else {
-          console.log(error);
-          toast.error("Failed to load statistics");
-        }
+        console.error(error);
+        toast.error("Failed to load stats");
       } finally {
         setLoading(false);
       }
     };
-    fetchUserExamStatistics();
-  }, []);
+    fetchStats();
+  }, [protocol, localIp]);
 
-  // Calculate derived statistics
-  const stats = userStats
-    ? {
-        total_exams_attempted: userStats.total_exams_attempted || 0,
-        average_score: userStats.overall_percentage || 0,
-        exams_created: 0, // You'll need to fetch this separately
-        highest_score: userStats.best_marks || 0,
-        total_attempts: userStats.total_attempts || 0,
-        passed_exams: userStats.passed_exams || 0,
-        success_rate:
-          userStats.total_attempts > 0
-            ? Math.round(
-                (userStats.passed_exams / userStats.total_attempts) * 100
-              )
-            : 0,
-        total_time_spent:
-          Math.round(userStats.total_time_spent_minutes / 60) || 0, // Convert to hours
-      }
-    : null;
-
-  if (loading) {
+  if (loading)
     return (
-      <div className="flex flex-col mt-10 w-full p-4 md:p-8 gap-10">
-        <div className="@container/main flex flex-1 flex-col w-full gap-20 lg:w-[90%] mx-auto">
-          <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="@container/card animate-pulse">
-                <CardHeader>
-                  <CardDescription className="h-4 bg-gray-200 rounded w-1/2"></CardDescription>
-                  <CardTitle className="h-8 bg-gray-200 rounded w-3/4 mt-2"></CardTitle>
-                  <CardAction>
-                    <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-                  </CardAction>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-          <div className="animate-pulse">
-            <div className="h-64 bg-gray-200 rounded"></div>
-          </div>
-        </div>
+      <div className="flex justify-center items-center h-64 text-muted-foreground">
+        Loading dashboard...
       </div>
     );
-  }
+
+  if (!userStats)
+    return (
+      <div className="flex justify-center items-center h-64 text-muted-foreground">
+        No statistics available yet.
+      </div>
+    );
+
+  const cards = {
+    highest_percent: userStats.highest_score_percent || 0,
+    average_percent: userStats.average_score_percent || 0,
+    total_created: userStats.total_exams_created || 0,
+    total_attempts: userStats.total_attempts_made || 0,
+  };
 
   return (
-    <>
-      <div className="flex flex-col mt-10 w-full p-4 md:p-8 gap-10">
-        <div className="@container/main flex flex-1 flex-col w-full gap-20 lg:w-[90%] mx-auto">
-          <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-            <Card className="@container/card">
-              <CardHeader>
-                <CardDescription>Total Exams Attempted</CardDescription>
-                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {stats.total_exams_attempted}
-                </CardTitle>
-                <CardAction>
-                  <Badge variant="outline" className="text-sm">
-                    {stats.total_attempts} attempts
-                  </Badge>
-                </CardAction>
-              </CardHeader>
-            </Card>
+    <div className="flex flex-col mt-10 w-full p-4 md:p-8 gap-10">
+      <div className="@container/main flex flex-1 flex-col w-full gap-20 lg:w-[90%] mx-auto">
+        {/* TOP 4 CARDS */}
+        <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+          <Card>
+            <CardHeader>
+              <CardDescription>Highest Score</CardDescription>
+              <CardTitle className="text-3xl font-semibold">
+                {cards.highest_percent.toFixed(1)}%
+              </CardTitle>
+              <CardAction>
+                <Badge variant="outline">Best Attempt</Badge>
+              </CardAction>
+            </CardHeader>
+          </Card>
 
-            <Card className="@container/card">
-              <CardHeader>
-                <CardDescription>Average Score</CardDescription>
-                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {stats.average_score.toFixed(1)}%
-                </CardTitle>
-                <CardAction>
-                  <Badge variant="outline" className="text-sm">
-                    Overall
-                  </Badge>
-                </CardAction>
-              </CardHeader>
-            </Card>
+          <Card>
+            <CardHeader>
+              <CardDescription>Average Score</CardDescription>
+              <CardTitle className="text-3xl font-semibold">
+                {cards.average_percent.toFixed(1)}%
+              </CardTitle>
+              <CardAction>
+                <Badge variant="outline">Across Attempts</Badge>
+              </CardAction>
+            </CardHeader>
+          </Card>
 
-            <Card className="@container/card">
-              <CardHeader>
-                <CardDescription>Success Rate</CardDescription>
-                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {stats.success_rate}%
-                </CardTitle>
-                <CardAction>
-                  <Badge variant="outline" className="text-sm">
-                    {stats.passed_exams} passed
-                  </Badge>
-                </CardAction>
-              </CardHeader>
-            </Card>
+          <Card>
+            <CardHeader>
+              <CardDescription>Total Exams Created</CardDescription>
+              <CardTitle className="text-3xl font-semibold">
+                {cards.total_created}
+              </CardTitle>
+              <CardAction>
+                <Badge variant="outline">Your Exams</Badge>
+              </CardAction>
+            </CardHeader>
+          </Card>
 
-            <Card className="@container/card">
-              <CardHeader>
-                <CardDescription>Highest Score</CardDescription>
-                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {stats.highest_score.toFixed(1)}%
-                </CardTitle>
-                <CardAction>
-                  <Badge variant="outline" className="text-sm">
-                    Personal Best
-                  </Badge>
-                </CardAction>
-              </CardHeader>
-            </Card>
-          </div>
-
-          <ChartLineInteractive userStats={userStats} />
+          <Card>
+            <CardHeader>
+              <CardDescription>Total Attempts Made</CardDescription>
+              <CardTitle className="text-3xl font-semibold">
+                {cards.total_attempts}
+              </CardTitle>
+              <CardAction>
+                <Badge variant="outline">All Attempts</Badge>
+              </CardAction>
+            </CardHeader>
+          </Card>
         </div>
+
+        {/* PERFORMANCE CHART */}
+        <ChartLineInteractive userStats={userStats} />
       </div>
-    </>
+    </div>
   );
 }
+  
