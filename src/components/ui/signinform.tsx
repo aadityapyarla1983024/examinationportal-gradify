@@ -38,7 +38,7 @@ export default function SignInForm() {
 
   const onSubmit = (data) => {
     console.log(data);
-    const apiendpoint = `${protocol}://${localIp}:3000/api/auth/signin`;
+    const apiendpoint = `/api/auth/signin`;
     axios
       .post(apiendpoint, data)
       .then((res) => {

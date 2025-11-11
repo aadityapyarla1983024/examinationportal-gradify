@@ -20,7 +20,7 @@ export function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const api = `${protocol}://${localIp}:3000/api/stats/get-user-overall-statistics`;
+        const api = `/api/stats/get-user-overall-statistics`;
         const res = await axios.post(
           api,
           { user_id: JSON.parse(localStorage.getItem("user")).id },
@@ -119,4 +119,3 @@ export function DashboardPage() {
     </div>
   );
 }
-  

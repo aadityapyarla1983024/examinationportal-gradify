@@ -13,8 +13,8 @@ import ForgotPasswordPage from "./pages/forgotpasswordpage";
 import ResetPasswordPage from "./pages/resetpasswordpage";
 import { constants } from "../config/constants.js";
 const UserContext = createContext(null);
-const localIp = "localhost";
-const protocol = "http";
+const localIp = import.meta.env.VITE_API_HOST || "localhost";
+const protocol = import.meta.env.VITE_API_PROTOCOL || "http";
 
 export default function App() {
   const location = useLocation();
@@ -34,7 +34,7 @@ export default function App() {
       setLoading(false);
       return;
     }
-    const apiendpoint = `${protocol}://${localIp}:3000/api/auth/login-verify`;
+    const apiendpoint = `/api/auth/login-verify`;
     axios
       .get(apiendpoint, {
         headers: {

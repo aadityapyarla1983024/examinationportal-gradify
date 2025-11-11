@@ -36,7 +36,7 @@ function PublicExamInfoPage() {
     const fetchExamInfo = async () => {
       try {
         const res = await axios.post(
-          `${protocol}://${localIp}:3000/api/public-exam/getinfo`,
+          `/api/public-exam/getinfo`,
           { excode },
           { headers: { ["x-auth-token"]: localStorage.getItem("token") } }
         );

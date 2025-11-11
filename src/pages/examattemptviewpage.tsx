@@ -31,7 +31,7 @@ export default function ExamAttemptViewPage() {
 
   useEffect(() => {
     const fetchAttempt = async () => {
-      const apiendpoint = `${protocol}://${localIp}:3000/api/attempt/view-attempt`;
+      const apiendpoint = `/api/attempt/view-attempt`;
       try {
         const res = await axios.post(
           apiendpoint,

@@ -230,7 +230,7 @@ export default function ExamAttemptPage() {
     }
 
     const reqBody = { excode, answers, exam_attempt_id };
-    const apiendpoint = `${protocol}://${localIp}:3000/api/attempt/submit-exam`;
+    const apiendpoint = `/api/attempt/submit-exam`;
     axios
       .post(apiendpoint, reqBody, {
         headers: { ["x-auth-token"]: localStorage.getItem("token") },
@@ -273,7 +273,7 @@ export default function ExamAttemptPage() {
   const initializeAttempt = async (user_token) => {
     try {
       const res = await axios.post(
-        `${protocol}://${localIp}:3000/api/attempt/start-attempt`,
+        `/api/attempt/start-attempt`,
         { excode },
         { headers: { ["x-auth-token"]: user_token } }
       );
@@ -288,7 +288,7 @@ export default function ExamAttemptPage() {
   const fetchExam = async (user_token) => {
     try {
       const res = await axios.post(
-        `${protocol}://${localIp}:3000/api/exam/get-exam`,
+        `/api/exam/get-exam`,
         { excode },
         { headers: { ["x-auth-token"]: user_token } }
       );

@@ -24,7 +24,7 @@ function PublicExamPage() {
   const navigate = useNavigate();
   useEffect(() => {
     const fetchPublicExams = async () => {
-      const apiendpoint = `${protocol}://${localIp}:3000/api/exam/public-exams`;
+      const apiendpoint = `/api/exam/public-exams`;
       try {
         const res = await axios.get(apiendpoint, {
           headers: { ["x-auth-token"]: user.token },

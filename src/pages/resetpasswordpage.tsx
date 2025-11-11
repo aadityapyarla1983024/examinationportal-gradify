@@ -1,4 +1,10 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import {
   Form,
   FormField,
@@ -31,7 +37,7 @@ export default function ResetPasswordPage() {
 
   const { jwt } = useParams();
   const onSubmit = (data) => {
-    const apiendpoint = `${protocol}://${localIp}:3000/api/auth/reset-password`;
+    const apiendpoint = `/api/auth/reset-password`;
     axios
       .post(
         apiendpoint,
@@ -116,24 +122,35 @@ export default function ResetPasswordPage() {
             <CardHeader>
               <CardTitle>Reset Password</CardTitle>
               <CardDescription>
-                Provide us your new password so that you can log into your account once again.
+                Provide us your new password so that you can log into your
+                account once again.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className=" flex flex-col gap-5">
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className=" flex flex-col gap-5"
+                >
                   <FormField
                     control={form.control}
                     name="new_password"
                     rules={{
                       required: "New password is required",
-                      minLength: { value: 8, message: "Password must be at least 6 characters" },
+                      minLength: {
+                        value: 8,
+                        message: "Password must be at least 6 characters",
+                      },
                     }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="********" {...field} />
+                          <Input
+                            type="password"
+                            placeholder="********"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -145,13 +162,18 @@ export default function ResetPasswordPage() {
                     rules={{
                       required: "Confirm new password is required",
                       validate: (value) =>
-                        value === form.getValues("new_password") || "Passwords do not match",
+                        value === form.getValues("new_password") ||
+                        "Passwords do not match",
                     }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="********" {...field} />
+                          <Input
+                            type="password"
+                            placeholder="********"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -48,7 +48,7 @@ export default function ExamInfoPage() {
   useEffect(() => {
     const fetchExamInfo = async () => {
       try {
-        const apiendpoint = `${protocol}://${localIp}:3000/api/examinfo/get-exam-stats`;
+        const apiendpoint = `/api/examinfo/get-exam-stats`;
         const res = await axios.post(
           apiendpoint,
           { excode },

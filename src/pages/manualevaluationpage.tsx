@@ -24,7 +24,7 @@ function ManualEvaluationPage() {
 
   useEffect(() => {
     const fetchAnswers = async () => {
-      const apiendpoint = `${protocol}://${localIp}:3000/api/evaluate/get-answers`;
+      const apiendpoint = `/api/evaluate/get-answers`;
       try {
         const res = await axios.post(
           apiendpoint,
@@ -73,7 +73,7 @@ function ManualEvaluationPage() {
     });
     console.log(updatedAnswers);
     try {
-      const apiendpoint = `${protocol}://${localIp}:3000/api/evaluate/submit`;
+      const apiendpoint = `/api/evaluate/submit`;
       const res = await axios.post(
         apiendpoint,
         { answers: updatedAnswers, excode: exam.exam_code, exam_attempt_id },

@@ -125,13 +125,13 @@ function CreateExamPage() {
     const getTags = async () => {
       try {
         const [tagsRes, domainsRes, fieldsRes] = await Promise.all([
-          axios.get(`${protocol}://${localIp}:3000/api/exam/get-tags`, {
+          axios.get(`/api/exam/get-tags`, {
             headers: { ["x-auth-token"]: localStorage.getItem("token") },
           }),
-          axios.get(`${protocol}://${localIp}:3000/api/exam/get-domains`, {
+          axios.get(`/api/exam/get-domains`, {
             headers: { ["x-auth-token"]: localStorage.getItem("token") },
           }),
-          axios.get(`${protocol}://${localIp}:3000/api/exam/get-fields`, {
+          axios.get(`/api/exam/get-fields`, {
             headers: { ["x-auth-token"]: localStorage.getItem("token") },
           }),
         ]);
@@ -301,7 +301,7 @@ function CreateExamPage() {
     };
 
     try {
-      const apiendpoint = `${protocol}://${localIp}:3000/api/exam/new-exam`;
+      const apiendpoint = `/api/exam/new-exam`;
       const res = await axios.post(apiendpoint, exam, {
         headers: { "x-auth-token": user.token },
       });

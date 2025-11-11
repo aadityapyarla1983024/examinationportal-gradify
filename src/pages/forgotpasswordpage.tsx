@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -28,7 +34,7 @@ export default function ForgotPasswordPage() {
   const { user, localIp, protocol } = useContext(UserContext);
   const onSubmit = (data) => {
     setEmailLoading(true);
-    const apiendpoint = `${protocol}://${localIp}:3000/api/auth/forgot-password`;
+    const apiendpoint = `/api/auth/forgot-password`;
     axios
       .post(apiendpoint, data)
       .then((res) => {
@@ -109,7 +115,8 @@ export default function ForgotPasswordPage() {
             <CardHeader>
               <CardTitle>Reset your password</CardTitle>
               <CardDescription>
-                Provide us your email and we'll share the password reset link to your email
+                Provide us your email and we'll share the password reset link to
+                your email
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -136,12 +143,19 @@ export default function ForgotPasswordPage() {
                     )}
                   />
                   {!emailLoading && (
-                    <Button type="submit" className="mx-auto block w-full mt-10">
+                    <Button
+                      type="submit"
+                      className="mx-auto block w-full mt-10"
+                    >
                       Reset Password
                     </Button>
                   )}
                   {emailLoading && (
-                    <Button disabled type="submit" className="mx-auto block w-full mt-10">
+                    <Button
+                      disabled
+                      type="submit"
+                      className="mx-auto block w-full mt-10"
+                    >
                       <Spinner className="inline-block mr-2" />
                       Sending you an email
                     </Button>

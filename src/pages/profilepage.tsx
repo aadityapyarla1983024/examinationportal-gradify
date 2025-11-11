@@ -52,7 +52,7 @@ export default function ProfilePage() {
   const nameUpdate = (data) => {
     const formData = new FormData();
     formData.append("profile", profilePic.current);
-    const uploadendpoint = `${protocol}://${localIp}:3000/api/upload/profile`;
+    const uploadendpoint = `/api/upload/profile`;
     axios
       .post(uploadendpoint, formData, {
         headers: {
@@ -75,7 +75,7 @@ export default function ProfilePage() {
         }
       });
 
-    const apiendpoint = `${protocol}://${localIp}:3000/api/profile/nameupdate`;
+    const apiendpoint = `/api/profile/nameupdate`;
     axios
       .post(apiendpoint, {
         first_name: data.first_name,
@@ -105,7 +105,7 @@ export default function ProfilePage() {
   };
 
   const emailUpdate = (data) => {
-    const apiendpoint = `${protocol}://${localIp}:3000/api/profile/emailupdate`;
+    const apiendpoint = `/api/profile/emailupdate`;
     axios
       .post(apiendpoint, {
         email: data.email,
@@ -133,7 +133,7 @@ export default function ProfilePage() {
   };
 
   const passwordSubmit = (data) => {
-    const apiendpoint = `${protocol}://${localIp}:3000/api/profile/passwordupdate`;
+    const apiendpoint = `/api/profile/passwordupdate`;
     axios
       .post(apiendpoint, {
         old_password: data.old_password,

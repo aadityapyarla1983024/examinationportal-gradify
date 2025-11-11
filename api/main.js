@@ -13,18 +13,6 @@ import { dirname } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// === ROUTES ===
-import authRoutes from "./routes/auth.routes.js";
-import profileRoutes from "./routes/profile.routes.js";
-import examRoutes from "./routes/exam.routes.js";
-import attemptRoutes from "./routes/attempt.routes.js";
-import myexamsRoutes from "./routes/myexams.routes.js";
-import examinfoRoutes from "./routes/examinfo.routes.js";
-import pubRoutes from "./routes/publicexam.routes.js";
-import evaluateRoutes from "./routes/evaluate.routes.js";
-import statsRoutes from "./routes/stats.routes.js";
-import upload from "./routes/upload.routes.js";
-
 const app = express();
 
 // === GLOBAL MIDDLEWARE ===
@@ -41,7 +29,18 @@ app.use(
   })
 );
 
-// === ROUTE REGISTRATION ===
+// === ROUTES ===
+import authRoutes from "./routes/auth.routes.js";
+import profileRoutes from "./routes/profile.routes.js";
+import examRoutes from "./routes/exam.routes.js";
+import attemptRoutes from "./routes/attempt.routes.js";
+import myexamsRoutes from "./routes/myexams.routes.js";
+import examinfoRoutes from "./routes/examinfo.routes.js";
+import pubRoutes from "./routes/publicexam.routes.js";
+import evaluateRoutes from "./routes/evaluate.routes.js";
+import statsRoutes from "./routes/stats.routes.js";
+import upload from "./routes/upload.routes.js";
+
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/exam", examRoutes);
@@ -54,13 +53,33 @@ app.use("/api/stats", statsRoutes);
 app.use("/api/upload", upload);
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
-// === SERVER CONFIG ===
-const { port: PORT, host: HOST, ssl } = config.server.api;
+// === Serve React frontend ===
+// ✅ Must use absolute path with __dirname to work in Docker & GCP
+app.use(express.static(path.join(__dirname, "../dist")));
 
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../dist", "index.html"));
+});
+
+// === SERVER CONFIG ===
+// ✅ Use environment variables to override config for container
+const PORT = process.env.PORT || config.server.api.port || 3000;
+const HOST = process.env.HOST || "0.0.0.0"; // <- Docker & GCP need this
+const ssl = config.server.api.ssl || {};
+
+// === START SERVER ===
 const startServer = () => {
   try {
-    if (fs.existsSync(ssl.key) && fs.existsSync(ssl.cert)) {
-      const sslOptions = { key: ssl.key, cert: ssl.cert };
+    if (
+      ssl.key &&
+      ssl.cert &&
+      fs.existsSync(ssl.key) &&
+      fs.existsSync(ssl.cert)
+    ) {
+      const sslOptions = {
+        key: fs.readFileSync(ssl.key),
+        cert: fs.readFileSync(ssl.cert),
+      };
       https.createServer(sslOptions, app).listen(PORT, HOST, () => {
         console.log(`✅ Backend running securely on https://${HOST}:${PORT}`);
       });

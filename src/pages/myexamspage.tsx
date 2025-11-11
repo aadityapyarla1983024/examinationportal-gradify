@@ -24,7 +24,7 @@ export default function MyExamsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getExams = `${protocol}://${localIp}:3000/api/myexams/short/get-exams`;
+    const getExams = `/api/myexams/short/get-exams`;
     const fetchUserExamStats = async () => {
       try {
         const res = await axios.post(
@@ -355,15 +355,13 @@ export function NoAttemptsYet() {
         </EmptyMedia>
         <EmptyTitle>No attempts Yet</EmptyTitle>
         <EmptyDescription>
-          Get started by attempting your first exam.
-        Have an exam code ?
+          Get started by attempting your first exam. Have an exam code ?
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
         <div className="flex gap-2">
           <Link to={"/dashboard/enter-exam"}>
-          
-          <Button>Attempt exam</Button>
+            <Button>Attempt exam</Button>
           </Link>
         </div>
       </EmptyContent>
