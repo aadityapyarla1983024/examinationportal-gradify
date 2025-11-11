@@ -1,5 +1,6 @@
 import { env } from "./env.js";
 import { constants } from "./constants.js";
+
 export const config = {
   server: {
     api: {
@@ -15,15 +16,19 @@ export const config = {
       port: env.FRONT_SERVER_PORT,
     },
   },
+
   db: {
     host: env.DB_HOST,
+    port: env.DB_PORT,
     user: env.DB_USER,
     password: env.DB_PASSWORD,
     database: env.DB_DATABASE,
   },
+
   jwt: {
     privateKey: env.JWT_PRIVATE_KEY,
   },
+
   mail: {
     host: constants.MAIL.HOST,
     port: constants.MAIL.PORT,
