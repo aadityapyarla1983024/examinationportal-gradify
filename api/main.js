@@ -17,12 +17,22 @@ const app = express();
 
 // === GLOBAL MIDDLEWARE ===
 app.use(express.json());
-app.use(helmet());
+
+// ✅ Disable HTTPS-only headers (so Chrome won’t block HTTP)
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: false,
+    originAgentCluster: false,
+  })
+);
+
 app.use(morgan("tiny"));
 app.use(express.urlencoded({ extended: true }));
+
+// ✅ Allow frontend requests from anywhere (during GCP deployment)
 app.use(
   cors({
-    origin: true,
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
     exposedHeaders: ["x-auth-token"],
@@ -53,18 +63,18 @@ app.use("/api/stats", statsRoutes);
 app.use("/api/upload", upload);
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
-// === Serve React frontend ===
-// ✅ Must use absolute path with __dirname to work in Docker & GCP
-app.use(express.static(path.join(__dirname, "../dist")));
+// === FRONTEND SERVING ===
+//const distPath = path.join(__dirname, "../dist");
+//app.use(express.static(distPath));
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../dist", "index.html"));
-});
+// ✅ Fix for Express v5 “path-to-regexp” crash — use string, not regex
+//app.get(/.*/, (req, res) => {
+  //res.sendFile(path.join(distPath, "index.html"));
+//});
 
 // === SERVER CONFIG ===
-// ✅ Use environment variables to override config for container
 const PORT = process.env.PORT || config.server.api.port || 3000;
-const HOST = process.env.HOST || "0.0.0.0"; // <- Docker & GCP need this
+const HOST = process.env.HOST || "0.0.0.0";
 const ssl = config.server.api.ssl || {};
 
 // === START SERVER ===
@@ -84,14 +94,15 @@ const startServer = () => {
         console.log(`✅ Backend running securely on https://${HOST}:${PORT}`);
       });
     } else {
-      throw new Error("SSL certificates not found");
+      console.log("⚠️ SSL not found, falling back to HTTP...");
+      http.createServer(app).listen(PORT, HOST, () => {
+        console.log(`✅ Backend running on http://${HOST}:${PORT}`);
+      });
     }
   } catch (error) {
-    console.log("⚠️ SSL not found, falling back to HTTP...");
-    http.createServer(app).listen(PORT, HOST, () => {
-      console.log(`✅ Backend running on http://${HOST}:${PORT}`);
-    });
+    console.error("❌ Server startup error:", error.message);
   }
 };
 
+// 🚀 Start the server
 startServer();

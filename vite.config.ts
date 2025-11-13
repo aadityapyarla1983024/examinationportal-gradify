@@ -1,42 +1,26 @@
+import path from "path";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import tailwindcss from "@tailwindcss/vite";
-import path from "path";
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
+  base: "/", // ✅ ensures assets are loaded correctly
   plugins: [react(), tailwindcss()],
-
   server: {
-    host: "0.0.0.0", // Allows access from LAN or VM
+    host: "0.0.0.0",
     port: 5173,
-
-    // Proxy only in development mode
-    proxy:
-      mode === "development"
-        ? {
-            "/api": {
-              target: "http://localhost:3000", // backend server
-              changeOrigin: true,
-              secure: false,
-            },
-          }
-        : undefined,
+    cors: true,
+    proxy: {
+      "/api": {
+        target: "http://34.93.5.136:3000", // ✅ your backend IP
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
-
-  build: {
-    outDir: "dist", // output folder (served by Express)
-    sourcemap: false, // disable for smaller prod builds
-  },
-
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-
-  preview: {
-    port: 4173, // vite preview port if you run `npm run preview`
-    strictPort: true,
-  },
-}));
+});
